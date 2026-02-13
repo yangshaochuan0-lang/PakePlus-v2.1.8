@@ -12259,16 +12259,35 @@ ${shopsMap[link.shopId]}
                         }
                         
                         function saveEditPurchase() {
-                            // 此函数可能是旧的或备用的实现，已被第23866行的函数取代
-                            // 为避免冲突，暂时禁用
-                            console.warn('=== 旧的 saveEditPurchase 函数被调用，此函数已被弃用 ===');
-                            // 直接调用新的函数
-                            const newSaveEditPurchase = window.saveEditPurchase;
-                            if (typeof newSaveEditPurchase === 'function' && newSaveEditPurchase !== saveEditPurchase) {
-                                newSaveEditPurchase();
-                            } else {
-                                showToast('错误', '保存功能暂时不可用，请稍后再试', 'error');
-                            }
+                            const id = document.getElementById('edit-purchase-id').value;
+                            const recordIndex = purchaseRecords.findIndex(r => r.id === id);
+                            if (recordIndex === -1) return;
+                            
+                            // 获取表单数据
+                            const updatedRecord = {
+                                ...purchaseRecords[recordIndex],
+                                supplier: document.getElementById('edit-purchase-supplier').value,
+                                quantity: parseInt(document.getElementById('edit-purchase-quantity').value),
+                                paidAmount: parseFloat(document.getElementById('edit-purchase-paid-amount').value) || 0,
+                                note: document.getElementById('edit-purchase-note').value,
+                                // 转换日期时间为标准ISO格式
+                                date: new Date(document.getElementById('edit-purchase-date').value).toISOString()
+                            };
+                            
+                            // 更新记录
+                            purchaseRecords[recordIndex] = updatedRecord;
+                            
+                            // 保存到localStorage
+                            savePurchaseRecords();
+                            
+                            // 重新渲染表格
+                            renderPurchaseRecords();
+                            
+                            // 关闭模态框
+                            closeEditPurchaseModal();
+                            
+                            // 显示成功提示
+                            showToast('采购记录更新成功！', 'success');
                         }
                         
                         function closeEditPurchaseModal() {
@@ -22247,43 +22266,14 @@ ${shopsMap[link.shopId]}
 
         // 加载采购数据
         function loadPurchaseData() {
-            console.log('=== 进入 loadPurchaseData 函数 ===');
             const saved = localStorage.getItem('purchaseData');
             if (saved) {
                 purchaseData = JSON.parse(saved);
-                console.log('=== 从localStorage加载的数据数量 ===', purchaseData.purchases.length);
-                
-                // 为每条记录生成一个永久性的、基于ID的哈希编码
-                purchaseData.purchases = purchaseData.purchases.map(purchase => {
-                    // 直接在原对象上修改
-                    if (!purchase.hasOwnProperty('note')) {
-                        purchase.note = '';
-                    }
-                    
-                    // 如果记录没有永久性编码，则生成一个
-                    if (!purchase.hasOwnProperty('permanentCode')) {
-                        // 使用ID生成一个简单的哈希值，确保编码永久性
-                        const idStr = purchase.id.toString();
-                        let hash = 0;
-                        for (let i = 0; i < idStr.length; i++) {
-                            const char = idStr.charCodeAt(i);
-                            hash = ((hash << 5) - hash) + char;
-                            hash = hash & hash; // Convert to 32bit integer
-                        }
-                        // 将哈希值转换为正数并格式化为编码
-                        const absHash = Math.abs(hash);
-                        const prefix = String.fromCharCode(65 + (absHash % 26)); // A-Z
-                        const suffix = String(absHash % 10000).padStart(4, '0');
-                        purchase.permanentCode = prefix + suffix;
-                        console.log(`=== 为记录 ${purchase.id} 生成了永久性编码: ${purchase.permanentCode} ===`);
-                    }
-                    
-                    return purchase;
-                });
-                
-                console.log('=== 处理后的数据数量 ===', purchaseData.purchases.length);
-            } else {
-                console.log('=== localStorage中没有采购数据 ===');
+                // 确保所有采购记录都有note属性
+                purchaseData.purchases = purchaseData.purchases.map(purchase => ({
+                    ...purchase,
+                    note: purchase.note || ''
+                }));
             }
         }
 
@@ -23256,7 +23246,7 @@ ${shopsMap[link.shopId]}
                     <td class="px-4 py-3 whitespace-nowrap font-medium text-blue-600">${(purchase.totalPrice - purchase.paidAmount).toFixed(2)}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${purchase.supplier}</td>
                     <td class="px-4 py-3 whitespace-nowrap">${formatDate(purchase.date, 'YYYY-MM-DD HH:mm')}</td>
-                    <td class="px-4 py-3 whitespace-nowrap font-mono">${purchase.permanentCode || purchase.code || 'N/A'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap font-mono">${purchase.code || 'N/A'}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <div class="flex space-x-2 justify-center items-center">
                             <button onclick="editPurchase(${originalIndex})" class="text-primary hover:text-primary/80">
@@ -23722,22 +23712,19 @@ ${shopsMap[link.shopId]}
         }
 
         // 编辑采购记录
-        function editPurchase(id) {
-            console.log('=== 打开编辑窗口 ===', 'ID:', id);
+        function editPurchase(index) {
+            console.log('=== 打开编辑窗口 ===', '索引:', index, '数据总数:', purchaseData.purchases.length);
+            
+            // 记录当前所有数据的备注，用于后续对比
+            console.log('=== 打开编辑窗口前的所有备注 ===');
+            purchaseData.purchases.forEach((p, i) => {
+                console.log(`索引 ${i} (ID: ${p.id}):`, p.note);
+            });
             
             try {
-                // 尝试通过ID查找记录
-                let purchase = purchaseData.purchases.find(p => p.id === id);
-                let index = purchaseData.purchases.findIndex(p => p.id === id);
-                
-                // 如果通过ID没找到，尝试将id作为索引使用
-                if (!purchase && !isNaN(id)) {
-                    index = parseInt(id);
-                    purchase = purchaseData.purchases[index];
-                }
-                
+                const purchase = purchaseData.purchases[index];
                 if (!purchase) {
-                    console.error('未找到采购记录:', id);
+                    console.error('未找到采购记录:', index);
                     showToast('错误', '未找到采购记录', 'error');
                     return;
                 }
@@ -23746,7 +23733,7 @@ ${shopsMap[link.shopId]}
                 
                 // 填充编辑表单
                 const idInput = document.getElementById('edit-purchase-id');
-                idInput.value = id;
+                idInput.value = index;
                 console.log('=== 设置编辑ID ===', idInput.value);
                 
                 document.getElementById('edit-purchase-product').value = purchase.product;
@@ -23953,7 +23940,6 @@ ${shopsMap[link.shopId]}
             }
             
             // 5. 创建新对象
-            console.log(`=== 创建更新对象前的编码 ===`, originalPurchase.code);
             const updatedPurchase = {
                 id: originalPurchase.id,
                 createdAt: createdAt,
@@ -23967,7 +23953,6 @@ ${shopsMap[link.shopId]}
                 note,
                 code: originalPurchase.code // 保留原始编码，确保永久性
             };
-            console.log(`=== 创建更新对象后的编码 ===`, updatedPurchase.code);
             
             console.log('=== 准备保存的新记录 ===', JSON.stringify(updatedPurchase));
             
@@ -23975,10 +23960,6 @@ ${shopsMap[link.shopId]}
             console.log('=== 替换数组元素前 ===', '数组长度:', purchaseData.purchases.length);
             purchaseData.purchases[index] = updatedPurchase;
             console.log('=== 替换数组元素后 ===', '数组长度:', purchaseData.purchases.length);
-            
-            // 立即保存数据，防止编码丢失
-            console.log('=== 立即保存数据以锁定编码 ===');
-            savePurchaseData();
             
             // 6. 验证替换结果
             const replacedPurchase = purchaseData.purchases[index];
@@ -24048,10 +24029,14 @@ ${shopsMap[link.shopId]}
                 renderPaymentRecords();
             }
             
+            // 更新付款记录列表
+            if (typeof renderPaymentRecords === 'function') {
+                renderPaymentRecords();
+            }
+            
             // 关闭模态框
             document.getElementById('edit-purchase-modal').classList.add('hidden');
             
-            // 显示成功提示
             showToast('成功', '采购记录已更新', 'success');
         }
 
@@ -24875,11 +24860,6 @@ ${shopsMap[link.shopId]}
 
         // 生成采购编码函数
         function generatePurchaseCode() {
-            // 为了调试，记录函数调用
-            console.log('=== generatePurchaseCode 函数被调用 ===');
-            const stack = new Error().stack;
-            console.log('=== 调用栈 ===', stack);
-            
             // 生成首位大写字母 (A-Z)
             const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
             const firstChar = letters.charAt(Math.floor(Math.random() * letters.length));
@@ -24887,40 +24867,27 @@ ${shopsMap[link.shopId]}
             // 生成4位数字 (0000-9999)
             const numbers = Math.floor(1000 + Math.random() * 9000).toString();
             
-            const newCode = firstChar + numbers;
-            console.log('=== 生成了新编码 ===', newCode);
-            return newCode;
+            return firstChar + numbers;
         }
         
         // 确保所有采购记录都有编码
         function ensureAllPurchasesHaveCodes() {
             if (!purchaseData || !purchaseData.purchases) {
-                console.log('=== ensureAllPurchasesHaveCodes: 数据不存在，直接返回 ===');
                 return;
             }
             
-            console.log('=== 进入 ensureAllPurchasesHaveCodes 函数 ===');
-            console.log('=== 调用栈 ===', new Error().stack);
             let hasChanges = false;
             
-            purchaseData.purchases.forEach((purchase, index) => {
-                // 只在编码完全不存在（undefined 或 null）时才生成
-                if (purchase.code === undefined || purchase.code === null) {
+            purchaseData.purchases.forEach(purchase => {
+                if (!purchase.code) {
                     purchase.code = generatePurchaseCode();
-                    console.log(`=== 为索引 ${index} (ID: ${purchase.id}) 生成了新编码: ${purchase.code} ===`);
                     hasChanges = true;
-                } else {
-                    // 编码存在时，记录但不修改
-                    console.log(`=== 索引 ${index} (ID: ${purchase.id}) 已有编码: ${purchase.code}，保持不变 ===`);
                 }
             });
             
             if (hasChanges) {
-                console.log('=== 编码有变化，准备保存 ===');
                 savePurchaseData();
-                console.log('=== 已为所有采购记录生成编码并保存 ===');
-            } else {
-                console.log('=== 所有记录都已有编码，无需更改 ===');
+                console.log('已为所有采购记录生成编码');
             }
         }
         
