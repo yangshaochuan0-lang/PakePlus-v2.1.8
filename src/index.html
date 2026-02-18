@@ -13701,8 +13701,37 @@ ${shopsMap[link.shopId]}
             accessory: []
         };
         
+        // 初始化函数：清理重复分类并统一数据格式
+        function initializeCategories() {
+            console.log('初始化分类数据...');
+            
+            // 确保分类数据格式统一并清理重复项
+            Object.keys(costCategories).forEach(type => {
+                // 转换所有字符串格式为对象格式
+                costCategories[type] = costCategories[type].map(cat => 
+                    typeof cat === 'string' ? { name: cat, color: '#3B82F6' } : cat
+                );
+                
+                // 清理重复的分类（不区分大小写）
+                const seenNames = new Set();
+                costCategories[type] = costCategories[type].filter(cat => {
+                    const name = cat.name.toLowerCase();
+                    if (seenNames.has(name)) {
+                        console.log(`发现重复分类: ${cat.name}，已移除`);
+                        return false;
+                    }
+                    seenNames.add(name);
+                    return true;
+                });
+            });
+            
+            console.log('分类数据初始化完成:', JSON.stringify(costCategories, null, 2));
+        }
+
         // 动态定位悬浮窗 - 完全重写的解决方案
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化分类数据
+            initializeCategories();
             // 获取所有tooltip容器
             const tooltipContainers = document.querySelectorAll('.tooltip-container');
             
@@ -13883,8 +13912,19 @@ ${shopsMap[link.shopId]}
                 
                 // 如果有新的分类，添加到分类列表中
                 if (costCategory && costCategory.trim() !== '') {
-                    if (!costCategories[currentEditCostType].includes(costCategory.trim())) {
-                        costCategories[currentEditCostType].push(costCategory.trim());
+                    // 确保分类数据格式统一
+                    costCategories[currentEditCostType] = costCategories[currentEditCostType].map(cat => 
+                        typeof cat === 'string' ? { name: cat, color: '#3B82F6' } : cat
+                    );
+                    
+                    // 检查分类是否已存在（不区分大小写）
+                    const trimmedCategory = costCategory.trim();
+                    const categoryExists = costCategories[currentEditCostType].some(cat => 
+                        cat.name.toLowerCase() === trimmedCategory.toLowerCase()
+                    );
+                    
+                    if (!categoryExists) {
+                        costCategories[currentEditCostType].push({ name: trimmedCategory, color: '#3B82F6' });
                     }
                 }
                 
@@ -13949,8 +13989,19 @@ ${shopsMap[link.shopId]}
                 
                 // 如果有新的分类，添加到分类列表中
                 if (costCategory && costCategory.trim() !== '') {
-                    if (!costCategories[targetCostType].includes(costCategory.trim())) {
-                        costCategories[targetCostType].push(costCategory.trim());
+                    // 确保分类数据格式统一
+                    costCategories[targetCostType] = costCategories[targetCostType].map(cat => 
+                        typeof cat === 'string' ? { name: cat, color: '#3B82F6' } : cat
+                    );
+                    
+                    // 检查分类是否已存在（不区分大小写）
+                    const trimmedCategory = costCategory.trim();
+                    const categoryExists = costCategories[targetCostType].some(cat => 
+                        cat.name.toLowerCase() === trimmedCategory.toLowerCase()
+                    );
+                    
+                    if (!categoryExists) {
+                        costCategories[targetCostType].push({ name: trimmedCategory, color: '#3B82F6' });
                     }
                 }
                 
@@ -14344,9 +14395,14 @@ ${shopsMap[link.shopId]}
                 const costType = this.getAttribute('data-cost-type');
                 
                 if (categoryName) {
+                    // 确保分类数据格式统一，将所有字符串格式转换为对象格式
+                    costCategories[costType] = costCategories[costType].map(cat => 
+                        typeof cat === 'string' ? { name: cat, color: '#3B82F6' } : cat
+                    );
+                    
                     // 检查分类名称是否已存在（只比较名称，不比较颜色）
                     const categoryExists = costCategories[costType].some(cat => 
-                        typeof cat === 'string' ? cat === categoryName : cat.name === categoryName
+                        cat.name.toLowerCase() === categoryName.toLowerCase()
                     );
                     
                     if (!categoryExists) {
@@ -14361,6 +14417,8 @@ ${shopsMap[link.shopId]}
                     } else {
                         showToast('错误', '分类名称已存在', 'error');
                     }
+                } else {
+                    showToast('提示', '请输入分类名称', 'info');
                 }
             });
             
@@ -23010,17 +23068,22 @@ ${shopsMap[link.shopId]}
             if (savedCostCategories) {
                 costCategories = JSON.parse(savedCostCategories);
                 
-                // 清理重复的分类（基于名称去重）
+                // 清理重复的分类（基于名称去重，不区分大小写）
                 Object.keys(costCategories).forEach(type => {
                     const seenNames = new Set();
                     costCategories[type] = costCategories[type].filter(cat => {
-                        const name = typeof cat === 'string' ? cat : cat.name;
+                        const name = typeof cat === 'string' ? cat.toLowerCase() : cat.name.toLowerCase();
                         if (seenNames.has(name)) {
                             return false;
                         }
                         seenNames.add(name);
                         return true;
                     });
+                    
+                    // 确保所有分类都是对象格式
+                    costCategories[type] = costCategories[type].map(cat => 
+                        typeof cat === 'string' ? { name: cat, color: '#3B82F6' } : cat
+                    );
                 });
             }
             
