@@ -296,6 +296,28 @@
             </div>
         </div>
     </div>
+    
+    <!-- Cost Item Details Modal -->
+    <div id="cost-item-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">成本项目详情</h3>
+                    <button id="close-cost-item-details-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div id="cost-item-details-content">
+                    <!-- Content will be dynamically inserted here -->
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button id="close-cost-item-details-btn" class="btn btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
 
 
 
@@ -1206,7 +1228,7 @@
                             <!-- Notes Sidebar -->
                             <div class="w-64 border-r border-gray-200 bg-gray-50 p-4 flex flex-col">
                                 <div class="space-y-2 mb-6">
-                                    <button class="note-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-primary/10 hover:text-primary font-medium transition-colors" data-note-view="default" onclick="switchNoteView('default')">
+                                    <button class="note-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-primary/10 text-primary font-medium transition-colors" data-note-view="default" onclick="switchNoteView('default')" data-doubao-line="1209" data-doubao-column="37">
                                         <i class="fa fa-file-text-o" style="color: #3b82f6;"></i>
                                         <span style="font-weight: bold;">笔记</span>
                                     </button>
@@ -1214,7 +1236,7 @@
                                         <i class="fa fa-star" style="color: #f59e0b;"></i>
                                         <span style="font-weight: bold;">重要</span>
                                     </button>
-                                    <button class="note-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg bg-primary/10 text-primary font-medium" data-note-view="all" onclick="switchNoteView('all')">
+                                    <button class="note-nav-btn w-full flex items-center space-x-3 px-4 py-3 rounded-lg hover:bg-gray-200 text-gray-700 font-medium" data-note-view="all" onclick="switchNoteView('all')">
                                         <i class="fa fa-list" style="color: #6b7280;"></i>
                                         <span style="font-weight: bold;">全部笔记</span>
                                     </button>
@@ -1530,7 +1552,7 @@
                                 <button class="p-2 rounded hover:bg-gray-200" title="有序列表" onclick="insertMarkdown('note-content', '1. ')">
                                     <i class="fa fa-list-ol"></i>
                                 </button>
-                                <button class="p-2 rounded hover:bg-gray-200" title="待办" onclick="document.execCommand('insertHTML', false, '<input type=&quot;checkbox&quot; class=&quot;mr-2&quot;>')">
+                                <button class="p-2 rounded hover:bg-gray-200" title="待办" onclick="insertCheckbox()">
                                     <i class="fa fa-square-o"></i>
                                 </button>
 
@@ -1838,9 +1860,30 @@
             let currentTaskId = null;
             let currentNoteId = null;
             
+            // 暴露到全局作用域
+            window.currentNoteId = currentNoteId;
+            window.notes = notes;
+            window.saveNotes = saveNotes;
+            
             // 页面加载时检查登录状态
             document.addEventListener('DOMContentLoaded', function() {
                 checkLoginStatus();
+                
+                // 绑定成本项目详情模态框关闭按钮事件
+                const closeCostItemDetailsModal = document.getElementById('close-cost-item-details-modal');
+                const closeCostItemDetailsBtn = document.getElementById('close-cost-item-details-btn');
+                
+                if (closeCostItemDetailsModal) {
+                    closeCostItemDetailsModal.addEventListener('click', function() {
+                        document.getElementById('cost-item-details-modal').classList.add('hidden');
+                    });
+                }
+                
+                if (closeCostItemDetailsBtn) {
+                    closeCostItemDetailsBtn.addEventListener('click', function() {
+                        document.getElementById('cost-item-details-modal').classList.add('hidden');
+                    });
+                }
                 
                 // 初始化笔记功能
                 initNotesFunctionality();
@@ -2065,7 +2108,8 @@
                 const bulkActions = document.getElementById('bulk-actions');
                 const selectAllCheckbox = document.getElementById('select-all-checkbox');
 
-                if (bulkSelectCheckboxes.length > 0) {
+                // 当全选框被选中时，即使没有任务，也显示批量操作按钮
+                if (bulkSelectCheckboxes.length > 0 || selectAllCheckbox.checked) {
                     bulkActions.classList.remove('hidden');
                     bulkActions.classList.add('flex');
                 } else {
@@ -2519,6 +2563,11 @@
                 }
                 
                 modal.classList.remove('hidden');
+                
+                // 延迟恢复复选框状态，确保DOM已更新
+                setTimeout(() => {
+                    restoreCheckboxStates();
+                }, 100);
 
                 // 标记为已查看，恢复任务框样式
                 if (taskId) {
@@ -2813,6 +2862,7 @@
             // 打开笔记模态框
             function openNoteModal(noteId = null) {
                 currentNoteId = noteId;
+                window.currentNoteId = currentNoteId; // 同步更新全局变量
                 const modal = document.getElementById('note-modal');
                 const titleInput = document.getElementById('note-title');
                 const contentTextarea = document.getElementById('note-content');
@@ -2841,6 +2891,11 @@
                 }
                 
                 modal.classList.remove('hidden');
+                
+                // 延迟恢复复选框状态，确保DOM已更新
+                setTimeout(() => {
+                    restoreCheckboxStates();
+                }, 100);
 
                 // 标记为已查看，恢复任务框样式
                 if (taskId) {
@@ -2857,6 +2912,7 @@
             function closeNoteModal() {
                 document.getElementById('note-modal').classList.add('hidden');
                 currentNoteId = null;
+                window.currentNoteId = null; // 同步更新全局变量
             }
             
             // 保存笔记
@@ -2957,6 +3013,62 @@
                 localStorage.setItem('notes', JSON.stringify(notes));
             }
             
+            // 插入复选框并处理状态
+            function insertCheckbox() {
+                const contentTextarea = document.getElementById('note-content');
+                const checkboxId = 'checkbox_' + generateId();
+                
+                // 创建复选框HTML，包含完整的状态管理
+                const checkboxHTML = `<input type="checkbox" id="${checkboxId}" class="mr-2 editing-breathing-bg" onchange="this.setAttribute('data-checked', this.checked); if (window.currentNoteId) { window.saveNoteWithCheckboxes(); }">`;
+                
+                // 插入复选框
+                document.execCommand('insertHTML', false, checkboxHTML);
+                
+                // 聚焦回内容区域
+                contentTextarea.focus();
+            }
+            
+            // 保存包含复选框状态的笔记
+            window.saveNoteWithCheckboxes = function() {
+                if (window.currentNoteId) {
+                    const note = window.notes.find(n => n.id === window.currentNoteId);
+                    if (note) {
+                        const contentTextarea = document.getElementById('note-content');
+                        note.content = contentTextarea.innerHTML;
+                        note.updatedAt = new Date().toISOString();
+                        window.saveNotes();
+                    }
+                }
+            };
+            
+            // 恢复复选框状态
+            function restoreCheckboxStates() {
+                // 等待DOM完全加载
+                setTimeout(() => {
+                    const checkboxes = document.querySelectorAll('#note-content input[type="checkbox"]');
+                    checkboxes.forEach(checkbox => {
+                        // 移除旧的事件监听器，避免重复
+                        checkbox.onchange = null;
+                        
+                        // 设置新的事件监听器
+                        checkbox.onchange = function() {
+                            this.setAttribute('data-checked', this.checked);
+                            if (window.currentNoteId) {
+                                window.saveNoteWithCheckboxes();
+                            }
+                        };
+                        
+                        // 恢复保存的状态
+                        const savedState = checkbox.getAttribute('data-checked');
+                        if (savedState === 'true') {
+                            checkbox.checked = true;
+                        } else {
+                            checkbox.checked = false;
+                        }
+                    });
+                }, 200);
+            }
+            
             // 更新笔记日期
             function updateNoteDate() {
                 const dateSpan = document.getElementById('note-date');
@@ -2984,6 +3096,11 @@
                 timeInput.value = `${hh}:${min}`;
                 
                 modal.classList.remove('hidden');
+                
+                // 延迟恢复复选框状态，确保DOM已更新
+                setTimeout(() => {
+                    restoreCheckboxStates();
+                }, 100);
 
                 // 标记为已查看，恢复任务框样式
                 if (taskId) {
@@ -17705,6 +17822,11 @@ ${shopsMap[link.shopId]}
             document.getElementById('export-sku-excel').addEventListener('click', function() {
                 const modal = document.getElementById('export-fields-modal');
                 modal.classList.remove('hidden');
+                
+                // 延迟恢复复选框状态，确保DOM已更新
+                setTimeout(() => {
+                    restoreCheckboxStates();
+                }, 100);
 
                 // 标记为已查看，恢复任务框样式
                 if (taskId) {
