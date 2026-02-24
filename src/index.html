@@ -2310,6 +2310,9 @@
             
             // 加载任务
             function loadTasks() {
+                // 先检查并重置到期的重复任务
+                resetRecurringTasks();
+                
                 // 渲染自定义列表
                 if (typeof renderCustomLists === 'function') {
                     renderCustomLists();
@@ -2667,6 +2670,21 @@
                                 <span>添加截止日期</span>
                             `;
                         }
+                        
+                        // 更新重复按钮状态
+                        const setRepeatBtn = document.getElementById('set-repeat-btn');
+                        if (task.repeat) {
+                            const repeatText = getRepeatText(task.repeat);
+                            setRepeatBtn.innerHTML = `
+                                <i class="fa fa-repeat text-primary"></i>
+                                <span class="text-primary">${repeatText}</span>
+                            `;
+                        } else {
+                            setRepeatBtn.innerHTML = `
+                                <i class="fa fa-repeat"></i>
+                                <span>重复</span>
+                            `;
+                        }
 
 
                     }
@@ -2771,6 +2789,21 @@
                             setDueDateBtn.innerHTML = `
                                 <i class="fa fa-calendar-o"></i>
                                 <span>添加截止日期</span>
+                            `;
+                        }
+                        
+                        // 更新重复按钮状态
+                        const setRepeatBtn = document.getElementById('set-repeat-btn');
+                        if (task.repeat) {
+                            const repeatText = getRepeatText(task.repeat);
+                            setRepeatBtn.innerHTML = `
+                                <i class="fa fa-repeat text-primary"></i>
+                                <span class="text-primary">${repeatText}</span>
+                            `;
+                        } else {
+                            setRepeatBtn.innerHTML = `
+                                <i class="fa fa-repeat"></i>
+                                <span>重复</span>
                             `;
                         }
 
@@ -3797,13 +3830,18 @@
             // 重置已完成的重复任务
             function resetRecurringTasks() {
                 const now = new Date();
+                // 设置时间为当天的开始时间（00:00:00）进行日期比较
+                const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
                 let hasChanges = false;
 
                 // 遍历所有已完成且设置了重复的任务
                 tasks.forEach(task => {
                     if (task.completed && task.completedDate && task.repeat) {
                         const completedDate = new Date(task.completedDate);
-                        let nextResetDate = new Date(completedDate);
+                        // 设置完成日期为当天的开始时间
+                        const completedDay = new Date(completedDate.getFullYear(), completedDate.getMonth(), completedDate.getDate());
+                        
+                        let nextResetDate = new Date(completedDay);
 
                         // 根据重复频率计算下一个重置日期
                         switch (task.repeat.frequency) {
@@ -3838,8 +3876,8 @@
                                 break;
                         }
 
-                        // 如果当前时间已经超过了重置时间，则重置任务
-                        if (now >= nextResetDate) {
+                        // 如果当前日期已经超过或等于重置日期，则重置任务
+                        if (today >= nextResetDate) {
                             task.completed = false;
                             task.completedDate = null;
                             
@@ -3850,18 +3888,16 @@
                                 });
                             }
                             
-                            // 如果有提醒，更新提醒时间
+                            // 如果有提醒，更新提醒时间到下一个周期
                             if (task.reminder) {
                                 const originalReminder = new Date(task.reminder);
                                 const timeDiff = originalReminder.getTime() - completedDate.getTime();
                                 const newReminder = new Date(nextResetDate.getTime() + timeDiff);
                                 task.reminder = newReminder.toISOString();
-                                
-                                // 重新注册提醒
                                 scheduleReminder(task);
                             }
                             
-                            // 如果有截止日期，更新截止日期
+                            // 如果有截止日期，更新截止日期到下一个周期
                             if (task.dueDate) {
                                 const originalDueDate = new Date(task.dueDate);
                                 const timeDiff = originalDueDate.getTime() - completedDate.getTime();
