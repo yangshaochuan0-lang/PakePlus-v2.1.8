@@ -2187,7 +2187,7 @@
 
             function initNotesFunctionality() {
                 // 页面加载时检查并创建重复任务
-                checkAndCreateRecurringTasks();
+                resetRecurringTasks();
                 // 初始化当前待办视图为"我的一天"
                 currentTodoView = 'my-day';
                 // 初始化笔记标签切换
@@ -2333,13 +2333,19 @@
                             filteredTasks = tasks.filter(task => task.important && !task.completed);
                             break;
                         case 'planned':
-                            filteredTasks = tasks.filter(task => (task.dueDate || task.reminder) && !task.completed);
+                            // 计划内列表显示有截止日期、提醒或重复设置的任务（包括已完成和未完成）
+                            filteredTasks = tasks.filter(task => (task.dueDate || task.reminder || task.repeat));
                             break;
                         case 'all':
                             filteredTasks = tasks.filter(task => !task.completed);
                             break;
                         case 'completed':
-                            filteredTasks = tasks.filter(task => task.completed);
+                            // 筛选已完成的任务，并按完成时间降序排序（最新完成的显示在最上面）
+                            filteredTasks = tasks.filter(task => task.completed).sort((a, b) => {
+                                const dateA = a.completedDate ? new Date(a.completedDate) : new Date(0);
+                                const dateB = b.completedDate ? new Date(b.completedDate) : new Date(0);
+                                return dateB - dateA; // 降序排序
+                            });
                             break;
                         case 'tasks':
                             // "待办"列表只显示没有指定listId且未完成的任务（即不属于任何自定义列表的未完成任务）
@@ -2413,6 +2419,96 @@
                     }
                 }
 
+                // 检查任务是否有重复设置
+                if (task.repeat) {
+                    let repeatText = '';
+                    
+                    switch (task.repeat.frequency) {
+                        case 'daily':
+                            repeatText = '每天';
+                            break;
+                        case 'weekly':
+                            repeatText = '每周';
+                            break;
+                        case 'monthly':
+                            repeatText = '每月';
+                            break;
+                        case 'yearly':
+                            repeatText = '每年';
+                            break;
+                        case 'custom':
+                            const interval = task.repeat.interval || 1;
+                            switch (task.repeat.unit) {
+                                case 'days':
+                                    repeatText = `每${interval}天`;
+                                    break;
+                                case 'weeks':
+                                    repeatText = `每${interval}周`;
+                                    break;
+                                case 'months':
+                                    repeatText = `每${interval}个月`;
+                                    break;
+                                case 'years':
+                                    repeatText = `每${interval}年`;
+                                    break;
+                            }
+                            break;
+                    }
+                    
+                    // 如果任务已完成，显示下次恢复时间
+                    if (task.completed && task.completedDate) {
+                        const completedDate = new Date(task.completedDate);
+                        let nextResetDate = new Date(completedDate);
+                        
+                        // 计算下次重置时间
+                        switch (task.repeat.frequency) {
+                            case 'daily':
+                                nextResetDate.setDate(nextResetDate.getDate() + 1);
+                                break;
+                            case 'weekly':
+                                nextResetDate.setDate(nextResetDate.getDate() + 7);
+                                break;
+                            case 'monthly':
+                                nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+                                break;
+                            case 'yearly':
+                                nextResetDate.setFullYear(nextResetDate.getFullYear() + 1);
+                                break;
+                            case 'custom':
+                                const interval = task.repeat.interval || 1;
+                                switch (task.repeat.unit) {
+                                    case 'days':
+                                        nextResetDate.setDate(nextResetDate.getDate() + interval);
+                                        break;
+                                    case 'weeks':
+                                        nextResetDate.setDate(nextResetDate.getDate() + (interval * 7));
+                                        break;
+                                    case 'months':
+                                        nextResetDate.setMonth(nextResetDate.getMonth() + interval);
+                                        break;
+                                    case 'years':
+                                        nextResetDate.setFullYear(nextResetDate.getFullYear() + interval);
+                                        break;
+                                }
+                                break;
+                        }
+                        
+                        taskOverviews.push(`
+                            <div class="flex items-center text-xs text-purple-500">
+                                <i class="fa fa-repeat mr-1"></i>
+                                <span>重复: ${repeatText} (下次${nextResetDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}恢复)</span>
+                            </div>
+                        `);
+                    } else {
+                        taskOverviews.push(`
+                            <div class="flex items-center text-xs text-purple-500">
+                                <i class="fa fa-repeat mr-1"></i>
+                                <span>重复: ${repeatText}</span>
+                            </div>
+                        `);
+                    }
+                }
+                
                 // 检查任务是否有截止时间
                 if (task.dueDate) {
                     const dueDate = new Date(task.dueDate);
@@ -2471,11 +2567,24 @@
                     task.completed = !task.completed;
                     if (task.completed) {
                         task.completedDate = new Date().toISOString();
+                        // 任务完成时自动取消截止日期
+                        task.dueDate = null;
                     } else {
                         task.completedDate = null;
                     }
                     saveTasks();
                     loadTasks();
+                    
+                    // 如果当前正在查看该任务的详情，更新截止日期按钮状态
+                    if (currentTaskId === taskId) {
+                        const setDueDateBtn = document.getElementById('set-due-date-btn');
+                        if (setDueDateBtn) {
+                            setDueDateBtn.innerHTML = `
+                                <i class="fa fa-calendar-o"></i>
+                                <span>添加截止日期</span>
+                            `;
+                        }
+                    }
                 }
             }
             
@@ -2544,6 +2653,22 @@
                             <i class="fa ${task.myDay ? 'fa-sun-o text-yellow-500' : 'fa-sun-o'}"></i>
                             <span>${task.myDay ? '取消我的一天' : '添加到我的一天'}</span>
                         `;
+                        
+                        // 更新截止日期按钮状态
+                        const setDueDateBtn = document.getElementById('set-due-date-btn');
+                        if (task.dueDate) {
+                            setDueDateBtn.innerHTML = `
+                                <i class="fa fa-calendar text-primary"></i>
+                                <span class="text-primary">已设置截止日期</span>
+                            `;
+                        } else {
+                            setDueDateBtn.innerHTML = `
+                                <i class="fa fa-calendar-o"></i>
+                                <span>添加截止日期</span>
+                            `;
+                        }
+
+
                     }
                 } else {
                     // 新建任务
@@ -2560,6 +2685,13 @@
                         <i class="fa fa-sun-o"></i>
                         <span>添加到我的一天</span>
                     `;
+                    
+                    // 更新截止日期按钮状态（新建任务时）
+                    const setDueDateBtn = document.getElementById('set-due-date-btn');
+                    setDueDateBtn.innerHTML = `
+                        <i class="fa fa-calendar-o"></i>
+                        <span>添加截止日期</span>
+                    `;
                 }
                 
                 modal.classList.remove('hidden');
@@ -2569,11 +2701,24 @@
                     restoreCheckboxStates();
                 }, 100);
 
-                // 标记为已查看，恢复任务框样式
+                // 标记为已查看，恢复任务框样式并清除已过期的提醒
                 if (taskId) {
                     const task = tasks.find(t => t.id === taskId);
                     if (task && task.needsAttention) {
                         task.needsAttention = false;
+                        // 如果任务有提醒且已过期，则清除提醒
+                        if (task.reminder) {
+                            const reminderDate = new Date(task.reminder);
+                            const now = new Date();
+                            if (reminderDate < now) {
+                                task.reminder = null;
+                                // 更新任务详情中的提醒按钮状态
+                                document.getElementById('set-reminder-btn').innerHTML = `
+                                    <i class="fa fa-bell-o"></i>
+                                    <span>提醒我</span>
+                                `;
+                            }
+                        }
                         saveTasks();
                         // 仅在非已完成视图时刷新列表，避免用户在查看已完成任务时被跳转
                         if (currentTodoView !== 'completed') {
@@ -2614,6 +2759,22 @@
                             <i class="fa ${task.myDay ? 'fa-sun-o text-yellow-500' : 'fa-sun-o'}"></i>
                             <span>${task.myDay ? '取消我的一天' : '添加到我的一天'}</span>
                         `;
+                        
+                        // 更新截止日期按钮状态
+                        const setDueDateBtn = document.getElementById('set-due-date-btn');
+                        if (task.dueDate) {
+                            setDueDateBtn.innerHTML = `
+                                <i class="fa fa-calendar text-primary"></i>
+                                <span class="text-primary">已设置截止日期</span>
+                            `;
+                        } else {
+                            setDueDateBtn.innerHTML = `
+                                <i class="fa fa-calendar-o"></i>
+                                <span>添加截止日期</span>
+                            `;
+                        }
+
+
                         saveTasks();
                     }
                 }
@@ -2686,6 +2847,193 @@
                         
                         task.steps = steps;
                         saveTasks();
+                        
+                        // 立即更新当前视图中对应任务卡片的概览信息
+                        updateTaskCardOverviews(currentTaskId);
+                    }
+                }
+            }
+            
+            // 更新任务卡片的概览信息（步骤、提醒、截止日期等）
+            function updateTaskCardOverviews(taskId) {
+                const task = tasks.find(t => t.id === taskId);
+                if (!task) return;
+                
+                // 查找当前视图中对应的任务卡片
+                const taskWrappers = document.querySelectorAll('#tasks-container > div');
+                let targetTaskElement = null;
+                
+                taskWrappers.forEach(wrapper => {
+                    const bulkCheckbox = wrapper.querySelector('.bulk-select-checkbox');
+                    if (bulkCheckbox && bulkCheckbox.dataset.taskId === taskId) {
+                        targetTaskElement = wrapper.querySelector('.p-4.rounded-lg.border');
+                    }
+                });
+                
+                if (targetTaskElement) {
+                    // 生成所有概览信息HTML
+                    const overviews = [];
+                    
+                    // 步骤信息
+                    if (task.steps && task.steps.length > 0) {
+                        const totalSteps = task.steps.length;
+                        const completedSteps = task.steps.filter(step => step && step.completed).length;
+                        overviews.push(`
+                            <div class="flex items-center text-xs ${task.needsAttention ? 'text-red-500' : 'text-gray-500'}">
+                                <i class="fa fa-list-ul mr-1"></i>
+                                <span>共${totalSteps}步，已完成${completedSteps}步</span>
+                            </div>
+                        `);
+                    }
+                    
+                    // 提醒信息
+                    if (task.reminder) {
+                        const reminderDate = new Date(task.reminder);
+                        if (!isNaN(reminderDate.getTime())) {
+                            const now = new Date();
+                            const isOverdue = reminderDate < now;
+                            overviews.push(`
+                                <div class="flex items-center text-xs ${isOverdue ? 'text-red-500' : 'text-blue-500'}">
+                                    <i class="fa fa-bell mr-1"></i>
+                                    <span>${isOverdue ? '提醒已过期: ' : '提醒: '}${reminderDate.toLocaleString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                </div>
+                            `);
+                        }
+                    }
+                    
+                    // 截止日期信息
+                    if (task.dueDate) {
+                        const dueDate = new Date(task.dueDate);
+                        if (!isNaN(dueDate.getTime())) {
+                            const now = new Date();
+                            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                            const dueDateOnly = new Date(dueDate.getFullYear(), dueDate.getMonth(), dueDate.getDate());
+                            const isOverdue = dueDateOnly < today;
+                            const isToday = dueDateOnly.getTime() === today.getTime();
+                            
+                            let label = '截止: ';
+                            if (isOverdue) {
+                                label = '已逾期: ';
+                            } else if (isToday) {
+                                label = '今日截止: ';
+                            }
+                            
+                            overviews.push(`
+                                <div class="flex items-center text-xs ${isOverdue ? 'text-red-500' : isToday ? 'text-orange-500' : 'text-green-500'}">
+                                    <i class="fa fa-calendar mr-1"></i>
+                                    <span>${label}${dueDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}</span>
+                                </div>
+                            `);
+                        }
+                    }
+                    
+                    // 重复周期信息
+                    if (task.repeat) {
+                        const now = new Date();
+                        let repeatText = '';
+                        
+                        switch (task.repeat.frequency) {
+                            case 'daily':
+                                repeatText = '每天';
+                                break;
+                            case 'weekly':
+                                repeatText = '每周';
+                                break;
+                            case 'monthly':
+                                repeatText = '每月';
+                                break;
+                            case 'yearly':
+                                repeatText = '每年';
+                                break;
+                            case 'custom':
+                                const interval = task.repeat.interval || 1;
+                                switch (task.repeat.unit) {
+                                    case 'days':
+                                        repeatText = `每${interval}天`;
+                                        break;
+                                    case 'weeks':
+                                        repeatText = `每${interval}周`;
+                                        break;
+                                    case 'months':
+                                        repeatText = `每${interval}个月`;
+                                        break;
+                                    case 'years':
+                                        repeatText = `每${interval}年`;
+                                        break;
+                                }
+                                break;
+                        }
+                        
+                        // 如果任务已完成，显示下次恢复时间
+                        if (task.completed && task.completedDate) {
+                            const completedDate = new Date(task.completedDate);
+                            let nextResetDate = new Date(completedDate);
+                            
+                            // 计算下次重置时间
+                            switch (task.repeat.frequency) {
+                                case 'daily':
+                                    nextResetDate.setDate(nextResetDate.getDate() + 1);
+                                    break;
+                                case 'weekly':
+                                    nextResetDate.setDate(nextResetDate.getDate() + 7);
+                                    break;
+                                case 'monthly':
+                                    nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+                                    break;
+                                case 'yearly':
+                                    nextResetDate.setFullYear(nextResetDate.getFullYear() + 1);
+                                    break;
+                                case 'custom':
+                                    const interval = task.repeat.interval || 1;
+                                    switch (task.repeat.unit) {
+                                        case 'days':
+                                            nextResetDate.setDate(nextResetDate.getDate() + interval);
+                                            break;
+                                        case 'weeks':
+                                            nextResetDate.setDate(nextResetDate.getDate() + (interval * 7));
+                                            break;
+                                        case 'months':
+                                            nextResetDate.setMonth(nextResetDate.getMonth() + interval);
+                                            break;
+                                        case 'years':
+                                            nextResetDate.setFullYear(nextResetDate.getFullYear() + interval);
+                                            break;
+                                    }
+                                    break;
+                            }
+                            
+                            overviews.push(`
+                                <div class="flex items-center text-xs text-purple-500">
+                                    <i class="fa fa-repeat mr-1"></i>
+                                    <span>重复: ${repeatText} (下次${nextResetDate.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' })}恢复)</span>
+                                </div>
+                            `);
+                        } else {
+                            overviews.push(`
+                                <div class="flex items-center text-xs text-purple-500">
+                                    <i class="fa fa-repeat mr-1"></i>
+                                    <span>重复: ${repeatText}</span>
+                                </div>
+                            `);
+                        }
+                    }
+                    
+                    // 更新或创建概览区域
+                    const existingOverviewDiv = targetTaskElement.querySelector('.mt-2.flex.items-center.space-x-3');
+                    if (existingOverviewDiv) {
+                        // 替换整个概览区域
+                        existingOverviewDiv.outerHTML = `<div class="mt-2 flex items-center space-x-3">${overviews.join('')}</div>`;
+                    } else if (overviews.length > 0) {
+                        // 如果没有概览区域但有概览信息，创建新的概览区域
+                        const contentDiv = targetTaskElement.querySelector('.flex-1');
+                        const notesP = contentDiv.querySelector('p.text-sm.text-gray-500');
+                        
+                        if (notesP) {
+                            notesP.insertAdjacentHTML('afterend', `<div class="mt-2 flex items-center space-x-3">${overviews.join('')}</div>`);
+                        } else {
+                            const titleP = contentDiv.querySelector('p.font-medium');
+                            titleP.insertAdjacentHTML('afterend', `<div class="mt-2 flex items-center space-x-3">${overviews.join('')}</div>`);
+                        }
                     }
                 }
             }
@@ -2711,6 +3059,11 @@
                         
                         // 切换完成状态
                         task.completed = !task.completed;
+                    if (task.completed) {
+                        task.completedDate = new Date().toISOString();
+                    } else {
+                        task.completedDate = null;
+                    }
                         if (task.completed) {
                             task.completedDate = new Date().toISOString();
                         } else {
@@ -2727,7 +3080,7 @@
                         
                         // 如果任务从“未完成”变为“已完成”，则检查并创建重复任务
                         if (!originalTaskCompleted && task.completed) {
-                            checkAndCreateRecurringTasks();
+                            resetRecurringTasks();
                         }
                     }
                 } else {
@@ -3140,6 +3493,9 @@
                     closeReminderModal();
                     showToast('成功', '提醒已设置', 'success');
                     
+                    // 立即更新当前视图中对应任务卡片的提醒概览
+                    updateTaskCardOverviews(currentTaskId);
+                    
                     // 注册提醒
                     scheduleReminder(task);
                 } else {
@@ -3158,6 +3514,10 @@
                         // 检查任务是否仍然存在且未完成
                         const updatedTask = tasks.find(t => t.id === task.id);
                         if (updatedTask && !updatedTask.completed) {
+                            // 设置需要关注标志
+                            updatedTask.needsAttention = true;
+                            saveTasks();
+                            loadTasks(); // 重新加载任务列表以显示红色标记
                             showNotification(updatedTask.title);
                         }
                     }, timeUntilReminder);
@@ -3182,6 +3542,9 @@
                     saveTasks();
                     closeReminderModal();
                     showToast('成功', '提醒已取消', 'success');
+                    
+                    // 立即更新当前视图中对应任务卡片的提醒概览
+                    updateTaskCardOverviews(currentTaskId);
                 }
             }
 
@@ -3217,8 +3580,8 @@
                         // 关闭模态框
                         closeDueDateModal();
                         
-                        // 重新加载任务列表
-                        loadTasks();
+                        // 立即更新当前视图中对应任务卡片的概览信息
+                        updateTaskCardOverviews(currentTaskId);
                         
                         // 更新任务详情界面
                         if (typeof renderTaskDetails === 'function') {
@@ -3261,6 +3624,9 @@
                     saveTasks();
                     closeDueDateModal();
                     showToast('成功', '截止日期已设置', 'success');
+                    
+                    // 立即更新当前视图中对应任务卡片的概览信息
+                    updateTaskCardOverviews(currentTaskId);
                 } else {
                     showToast('错误', '请选择有效的日期', 'error');
                 }
@@ -3417,111 +3783,100 @@
                     }
                     
                     saveTasks();
+                    updateTaskCardOverviews(currentTaskId);
                     closeRepeatModal();
                     showToast('成功', '重复设置已保存', 'success');
                     
                     // 立即检查并创建未来的重复任务
-                    checkAndCreateRecurringTasks();
+                    resetRecurringTasks();
                 } else {
                     showToast('错误', '请选择重复频率', 'error');
                 }
             }
 
-            // 检查并创建重复任务
-            function checkAndCreateRecurringTasks() {
+            // 重置已完成的重复任务
+            function resetRecurringTasks() {
                 const now = new Date();
-                const thirtyDaysFromNow = new Date();
-                thirtyDaysFromNow.setDate(now.getDate() + 30); // 预创建未来30天的任务
-
                 let hasChanges = false;
 
-                // 遍历所有任务
+                // 遍历所有已完成且设置了重复的任务
                 tasks.forEach(task => {
-                    // 只处理设置了重复的任务（无论是否完成）
-                    if (task.repeat) {
-                        const baseDate = new Date(task.createdAt);
-                        
-                        // 计算下一个重复日期
-                        let nextDate = new Date(baseDate);
-                        let iterations = 0;
-                        const maxIterations = 100; // 防止无限循环
+                    if (task.completed && task.completedDate && task.repeat) {
+                        const completedDate = new Date(task.completedDate);
+                        let nextResetDate = new Date(completedDate);
 
-                        while (nextDate <= thirtyDaysFromNow && iterations < maxIterations) {
-                            // 根据重复频率计算下一个日期
-                            switch (task.repeat.frequency) {
-                                case 'daily':
-                                    nextDate.setDate(nextDate.getDate() + 1);
-                                    break;
-                                case 'weekly':
-                                    nextDate.setDate(nextDate.getDate() + 7);
-                                    break;
-                                case 'monthly':
-                                    nextDate.setMonth(nextDate.getMonth() + 1);
-                                    break;
-                                case 'yearly':
-                                    nextDate.setFullYear(nextDate.getFullYear() + 1);
-                                    break;
-                                case 'custom':
-                                    const interval = task.repeat.interval || 1;
-                                    switch (task.repeat.unit) {
-                                        case 'days':
-                                            nextDate.setDate(nextDate.getDate() + interval);
-                                            break;
-                                        case 'weeks':
-                                            nextDate.setDate(nextDate.getDate() + (interval * 7));
-                                            break;
-                                        case 'months':
-                                            nextDate.setMonth(nextDate.getMonth() + interval);
-                                            break;
-                                        case 'years':
-                                            nextDate.setFullYear(nextDate.getFullYear() + interval);
-                                            break;
-                                    }
-                                    break;
+                        // 根据重复频率计算下一个重置日期
+                        switch (task.repeat.frequency) {
+                            case 'daily':
+                                nextResetDate.setDate(nextResetDate.getDate() + 1);
+                                break;
+                            case 'weekly':
+                                nextResetDate.setDate(nextResetDate.getDate() + 7);
+                                break;
+                            case 'monthly':
+                                nextResetDate.setMonth(nextResetDate.getMonth() + 1);
+                                break;
+                            case 'yearly':
+                                nextResetDate.setFullYear(nextResetDate.getFullYear() + 1);
+                                break;
+                            case 'custom':
+                                const interval = task.repeat.interval || 1;
+                                switch (task.repeat.unit) {
+                                    case 'days':
+                                        nextResetDate.setDate(nextResetDate.getDate() + interval);
+                                        break;
+                                    case 'weeks':
+                                        nextResetDate.setDate(nextResetDate.getDate() + (interval * 7));
+                                        break;
+                                    case 'months':
+                                        nextResetDate.setMonth(nextResetDate.getMonth() + interval);
+                                        break;
+                                    case 'years':
+                                        nextResetDate.setFullYear(nextResetDate.getFullYear() + interval);
+                                        break;
+                                }
+                                break;
+                        }
+
+                        // 如果当前时间已经超过了重置时间，则重置任务
+                        if (now >= nextResetDate) {
+                            task.completed = false;
+                            task.completedDate = null;
+                            
+                            // 如果有步骤，也重置步骤的完成状态
+                            if (task.steps && task.steps.length > 0) {
+                                task.steps.forEach(step => {
+                                    step.completed = false;
+                                });
                             }
-
-                            iterations++;
-
-                            // 检查这个日期是否已经有任务了
-                            const taskExists = tasks.some(t => 
-                                t.id !== task.id && // 排除当前任务
-                                t.title === task.title && 
-                                t.repeat && 
-                                (t.repeat.parentId === task.id || t.repeat.parentId === task.repeat.parentId) && // 检查是否是同一父任务的重复任务
-                                isSameDay(new Date(t.createdAt), nextDate)
-                            );
-
-                            // 满足以下两个条件之一才创建新任务：
-                            // 1. 当前任务已完成，并且下一个周期还没有任务
-                            // 2. 下一个周期的日期已经到了，并且还没有任务
-                            const condition1 = task.completed && !taskExists && nextDate > baseDate;
-                            const condition2 = !taskExists && nextDate <= now;
-
-                            if (condition1 || condition2) {
-                                // 创建新的重复任务
-                                const newTask = {
-                                    id: generateId(),
-                                    title: task.title,
-                                    description: task.description || '',
-                                    completed: false,
-                                    important: task.important || false,
-                                    myDay: false, // 重复任务默认不加入"我的一天"
-                                    reminder: task.reminder ? adjustReminderDate(task.reminder, baseDate, nextDate) : null,
-                                    dueDate: task.dueDate ? adjustDueDate(task.dueDate, baseDate, nextDate) : null,
-                                    repeat: { ...task.repeat, parentId: task.repeat.parentId || task.id }, // 存储原始父任务ID
-                                    createdAt: nextDate.toISOString(),
-                                    updatedAt: nextDate.toISOString()
-                                };
-                                tasks.unshift(newTask);
-                                hasChanges = true;
+                            
+                            // 如果有提醒，更新提醒时间
+                            if (task.reminder) {
+                                const originalReminder = new Date(task.reminder);
+                                const timeDiff = originalReminder.getTime() - completedDate.getTime();
+                                const newReminder = new Date(nextResetDate.getTime() + timeDiff);
+                                task.reminder = newReminder.toISOString();
+                                
+                                // 重新注册提醒
+                                scheduleReminder(task);
                             }
+                            
+                            // 如果有截止日期，更新截止日期
+                            if (task.dueDate) {
+                                const originalDueDate = new Date(task.dueDate);
+                                const timeDiff = originalDueDate.getTime() - completedDate.getTime();
+                                const newDueDate = new Date(nextResetDate.getTime() + timeDiff);
+                                task.dueDate = newDueDate.toISOString();
+                            }
+                            
+                            hasChanges = true;
                         }
                     }
                 });
 
                 if (hasChanges) {
                     saveTasks();
-                    loadTasks(); // 重新加载任务列表以显示新创建的任务
+                    loadTasks(); // 重新加载任务列表以显示重置后的任务
                 }
             }
 
