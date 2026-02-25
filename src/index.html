@@ -271,6 +271,31 @@
             </div>
         </div>
     </div>
+    
+    <!-- Bulk Delete Confirmation Modal -->
+    <div id="bulk-delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="z-index: 1001;">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">确认批量删除</h3>
+                    <button id="close-bulk-delete-confirm-modal" class="text-gray-400 hover:text-gray-600" onclick="cancelBulkDeleteTasks()">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-gray-600">您确定要删除这 <span id="bulk-delete-count" class="font-semibold text-red-500"></span> 个待办事项吗？此操作无法撤销。</p>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-bulk-delete-btn" class="btn btn-secondary" onclick="cancelBulkDeleteTasks()">取消</button>
+                    <button id="confirm-bulk-delete-btn" class="btn btn-danger" onclick="confirmBulkDeleteTasks()">
+                        <i class="fa fa-trash"></i> 确认删除
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Delete Note Confirmation Modal -->
     <div id="delete-note-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="z-index: 1001;">
@@ -2158,13 +2183,37 @@
                 const selectedTaskIds = Array.from(document.querySelectorAll('.bulk-select-checkbox:checked')).map(cb => cb.dataset.taskId);
 
                 if (selectedTaskIds.length > 0) {
-                    if (confirm(`确定要删除这 ${selectedTaskIds.length} 个任务吗？`)) {
-                        tasks = tasks.filter(task => !selectedTaskIds.includes(task.id));
-                        saveTasks();
-                        loadTasks();
-                        showToast('成功', `已删除 ${selectedTaskIds.length} 个任务`, 'success');
-                    }
+                    // 存储选中的任务ID到全局变量，供确认模态框使用
+                    window.selectedTaskIdsForDeletion = selectedTaskIds;
+                    // 显示确认删除模态框
+                    document.getElementById('bulk-delete-confirm-modal').classList.remove('hidden');
+                    // 更新模态框中的任务数量
+                    document.getElementById('bulk-delete-count').textContent = selectedTaskIds.length;
                 }
+            }
+            
+            // 确认批量删除任务
+            function confirmBulkDeleteTasks() {
+                if (window.selectedTaskIdsForDeletion && window.selectedTaskIdsForDeletion.length > 0) {
+                    tasks = tasks.filter(task => !window.selectedTaskIdsForDeletion.includes(task.id));
+                    saveTasks();
+                    loadTasks();
+                    showToast('成功', `已删除 ${window.selectedTaskIdsForDeletion.length} 个任务`, 'success');
+                    // 清空选中的任务ID
+                    window.selectedTaskIdsForDeletion = [];
+                    // 关闭模态框
+                    document.getElementById('bulk-delete-confirm-modal').classList.add('hidden');
+                    // 退出批量操作模式
+                    toggleBulkMode();
+                }
+            }
+            
+            // 取消批量删除任务
+            function cancelBulkDeleteTasks() {
+                // 清空选中的任务ID
+                window.selectedTaskIdsForDeletion = [];
+                // 关闭模态框
+                document.getElementById('bulk-delete-confirm-modal').classList.add('hidden');
             }
 
             function insertMarkdown(elementId, text) {
@@ -2224,6 +2273,13 @@
                 todoNavBtns.forEach(btn => {
                     btn.addEventListener('click', function() {
                         const view = this.getAttribute('data-todo-view');
+                        
+                        // 如果当前在批量操作模式下，先退出批量操作模式
+                        const bulkActions = document.getElementById('bulk-actions');
+                        if (!bulkActions.classList.contains('hidden')) {
+                            toggleBulkMode();
+                        }
+                        
                         currentTodoView = view;
                         
                         // 更新按钮样式
