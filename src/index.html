@@ -213,7 +213,7 @@
 
     <!-- Edit Detail Form Modal -->
     <div id="edit-detail-form-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
             <div class="p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 id="edit-detail-form-title" class="text-lg font-semibold text-gray-800">新增明细表单</h3>
@@ -324,22 +324,23 @@
     
     <!-- Cost Item Details Modal -->
     <div id="cost-item-details-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold text-gray-800">成本项目详情</h3>
-                    <button id="close-cost-item-details-modal" class="text-gray-400 hover:text-gray-600">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </div>
-                
-                <div id="cost-item-details-content">
-                    <!-- Content will be dynamically inserted here -->
-                </div>
-                
-                <div class="mt-6 flex justify-end">
-                    <button id="close-cost-item-details-btn" class="btn btn-secondary">关闭</button>
-                </div>
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] flex flex-col">
+            <!-- 标题区 -->
+            <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
+                <h3 class="text-lg font-semibold text-gray-800">成本项目详情</h3>
+                <button id="close-cost-item-details-modal" class="text-gray-400 hover:text-gray-600 transition-colors">
+                    <i class="fa fa-times"></i>
+                </button>
+            </div>
+            
+            <!-- 内容区 -->
+            <div id="cost-item-details-content" class="flex-1 overflow-y-auto p-6">
+                <!-- Content will be dynamically inserted here -->
+            </div>
+            
+            <!-- 底部操作区 -->
+            <div class="border-t border-gray-200 px-6 py-4 flex justify-end bg-gray-50 rounded-b-lg">
+                <button id="close-cost-item-details-btn" class="btn btn-secondary hover:bg-gray-600 transition-colors">关闭</button>
             </div>
         </div>
     </div>
@@ -940,6 +941,37 @@
     </div> 
     
 
+    <!-- Platform Management Modal -->
+    <div id="platform-management-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-md">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">平台管理</h3>
+                    <button id="close-platform-management-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <div class="flex space-x-2">
+                        <input type="text" id="new-platform-name" class="input-field flex-1" placeholder="输入新平台名称">
+                        <button id="add-platform-btn" class="btn btn-primary">
+                            <i class="fa fa-plus"></i> 添加
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="platforms-list" class="max-h-60 overflow-y-auto">
+                    <!-- Platforms will be dynamically added here -->
+                </div>
+                
+                <div class="flex justify-end mt-4">
+                    <button id="close-platform-management-btn" class="btn btn-secondary">关闭</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Edit Link Modal -->
     <div id="edit-link-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4">
@@ -1375,7 +1407,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6">
+                <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
                     <div class="space-y-6">
                         <div>
                             <input type="text" id="task-detail-title" class="input-field text-xl font-semibold" placeholder="任务名称">
@@ -1565,7 +1597,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6">
+                <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
                     <div class="space-y-4">
                         <input type="text" id="note-title" class="input-field text-xl font-semibold" placeholder="笔记标题">
                         <div class="mb-2">
@@ -2626,21 +2658,30 @@
                     task.completed = !task.completed;
                     if (task.completed) {
                         task.completedDate = new Date().toISOString();
-                        // 任务完成时自动取消截止日期
+                        // 任务完成时自动取消截止日期和提醒
                         task.dueDate = null;
+                        task.reminder = null;
                     } else {
                         task.completedDate = null;
                     }
                     saveTasks();
                     loadTasks();
                     
-                    // 如果当前正在查看该任务的详情，更新截止日期按钮状态
+                    // 如果当前正在查看该任务的详情，更新截止日期和提醒按钮状态
                     if (currentTaskId === taskId) {
                         const setDueDateBtn = document.getElementById('set-due-date-btn');
                         if (setDueDateBtn) {
                             setDueDateBtn.innerHTML = `
                                 <i class="fa fa-calendar-o"></i>
                                 <span>添加截止日期</span>
+                            `;
+                        }
+                        
+                        const setReminderBtn = document.getElementById('set-reminder-btn');
+                        if (setReminderBtn) {
+                            setReminderBtn.innerHTML = `
+                                <i class="fa fa-bell-o"></i>
+                                <span>提醒我</span>
                             `;
                         }
                     }
@@ -2741,7 +2782,20 @@
                                 <span>重复</span>
                             `;
                         }
-
+                        
+                        // 更新提醒按钮状态
+                        const setReminderBtn = document.getElementById('set-reminder-btn');
+                        if (task.reminder) {
+                            setReminderBtn.innerHTML = `
+                                <i class="fa fa-bell text-primary"></i>
+                                <span class="text-primary">已设置提醒</span>
+                            `;
+                        } else {
+                            setReminderBtn.innerHTML = `
+                                <i class="fa fa-bell-o"></i>
+                                <span>提醒我</span>
+                            `;
+                        }
 
                     }
                 } else {
@@ -2766,6 +2820,13 @@
                         <i class="fa fa-calendar-o"></i>
                         <span>添加截止日期</span>
                     `;
+                    
+                    // 更新提醒按钮状态（新建任务时）
+                    const setReminderBtn = document.getElementById('set-reminder-btn');
+                    setReminderBtn.innerHTML = `
+                        <i class="fa fa-bell-o"></i>
+                        <span>提醒我</span>
+                    `;
                 }
                 
                 modal.classList.remove('hidden');
@@ -2787,10 +2848,13 @@
                             if (reminderDate < now) {
                                 task.reminder = null;
                                 // 更新任务详情中的提醒按钮状态
-                                document.getElementById('set-reminder-btn').innerHTML = `
-                                    <i class="fa fa-bell-o"></i>
-                                    <span>提醒我</span>
-                                `;
+                                const setReminderBtn = document.getElementById('set-reminder-btn');
+                                if (setReminderBtn) {
+                                    setReminderBtn.innerHTML = `
+                                        <i class="fa fa-bell-o"></i>
+                                        <span>提醒我</span>
+                                    `;
+                                }
                             }
                         }
                         saveTasks();
@@ -2862,7 +2926,20 @@
                                 <span>重复</span>
                             `;
                         }
-
+                        
+                        // 更新提醒按钮状态
+                        const setReminderBtn = document.getElementById('set-reminder-btn');
+                        if (task.reminder) {
+                            setReminderBtn.innerHTML = `
+                                <i class="fa fa-bell text-primary"></i>
+                                <span class="text-primary">已设置提醒</span>
+                            `;
+                        } else {
+                            setReminderBtn.innerHTML = `
+                                <i class="fa fa-bell-o"></i>
+                                <span>提醒我</span>
+                            `;
+                        }
 
                         saveTasks();
                     }
@@ -3572,11 +3649,14 @@
                     const reminderDate = new Date(`${dateInput.value}T${timeInput.value}`);
                     task.reminder = reminderDate.toISOString();
                     
-                    // 更新按钮状态
-                    document.getElementById('set-reminder-btn').innerHTML = `
-                        <i class="fa fa-bell text-primary"></i>
-                        <span class="text-primary">已设置提醒</span>
-                    `;
+                    // 更新按钮状态 - 只更新当前任务详情模态框中的按钮
+                    const setReminderBtn = document.getElementById('set-reminder-btn');
+                    if (setReminderBtn) {
+                        setReminderBtn.innerHTML = `
+                            <i class="fa fa-bell text-primary"></i>
+                            <span class="text-primary">已设置提醒</span>
+                        `;
+                    }
                     
                     saveTasks();
                     closeReminderModal();
@@ -8142,8 +8222,8 @@
                                     <i class="fa fa-chevron-down mr-2 text-gray-500 transition-transform duration-150 link-toggle-icon" style="transform: ${iconTransform}"></i>
                                     <span class="font-medium">${link.name || '未命名链接'}</span>
                                     <span class="ml-2 badge badge-shop">${link.category || '未分类'}</span>
-                                    ${link.shopId && shopsMap[link.shopId] ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-${shopsMap[link.shopId]}
+                                    ${link.shop && shopsMap[link.shop] ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+${shopsMap[link.shop]}
                                     </span>` : ''}
                                 </div>
                                 <div class="flex items-center space-x-2">
@@ -8280,8 +8360,8 @@ ${shopsMap[link.shopId]}
                                     <i class="fa fa-chevron-down mr-2 text-gray-500 transition-transform duration-150 link-toggle-icon"></i>
                                     <span class="font-medium">${link.name || '未命名链接'}</span>
                                     <span class="ml-2 badge badge-shop">${link.category || '未分类'}</span>
-                                    ${link.shopId && shopsMap[link.shopId] ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
-${shopsMap[link.shopId]}
+                                    ${link.shop && shopsMap[link.shop] ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
+${shopsMap[link.shop]}
                                     </span>` : ''}
                                 </div>
                                 <div class="flex items-center space-x-2">
@@ -8955,6 +9035,20 @@ ${shopsMap[link.shopId]}
                 document.getElementById('add-link-name').value = '';
                 document.getElementById('add-link-category').value = 'other';
                 document.getElementById('add-link-note').value = '';
+                
+                // 加载店铺列表到店铺归类选择器
+                const shopSelect = document.getElementById('add-link-shop');
+                shopSelect.innerHTML = '<option value="">选择店铺</option>';
+                
+                // 获取店铺数据
+                const shops = JSON.parse(localStorage.getItem('shops')) || [];
+                shops.forEach(shop => {
+                    const option = document.createElement('option');
+                    option.value = shop.id;
+                    option.textContent = shop.name;
+                    shopSelect.appendChild(option);
+                });
+                
                 document.getElementById('add-link-modal').classList.remove('hidden');
             }
             
@@ -8967,6 +9061,7 @@ ${shopsMap[link.shopId]}
             function saveAddLink() {
                 const name = document.getElementById('add-link-name').value.trim();
                 const category = document.getElementById('add-link-category').value;
+                const shop = document.getElementById('add-link-shop').value;
                 const note = document.getElementById('add-link-note').value.trim();
                 
                 if (!name) {
@@ -8978,6 +9073,7 @@ ${shopsMap[link.shopId]}
                     id: Date.now().toString(),
                     name: name,
                     category: category,
+                    shop: shop,
                     products: [],
                     note: note
                 };
@@ -9049,8 +9145,8 @@ ${shopsMap[link.shopId]}
                 });
                 
                 // 设置当前选中的店铺
-                if (link.shopId) {
-                    shopSelect.value = link.shopId;
+                if (link.shop) {
+                    shopSelect.value = link.shop;
                 }
                 
                 // 显示模态框 - 确保正确设置显示样式
@@ -9096,7 +9192,7 @@ ${shopsMap[link.shopId]}
                     const link = pricingData.links[index];
                     link.name = name;
                     link.category = category;
-                    link.shopId = shopId || null;
+                    link.shop = shopId || null;
                     link.note = note;
                     
                     savePricingData();
@@ -10887,6 +10983,17 @@ ${shopsMap[link.shopId]}
                             <input type="text" id="shop-search" placeholder="搜索店铺名称和商品ID..." class="w-64 px-4 py-2 pl-10 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" style="padding-left: 2rem;">
                             <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
                         </div>
+                        <div class="relative">
+                            <select id="platform-filter" class="w-48 px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer">
+                                <option value="">所有平台</option>
+                            </select>
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
+                                <i class="fa fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <button id="platform-settings" class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-200 text-gray-600 shadow-sm hover:from-gray-200 hover:to-gray-300 hover:shadow-md transition-all duration-200" title="平台管理">
+                            <i class="fa fa-cog"></i>
+                        </button>
                         <button id="add-shop" class="btn btn-primary">
                             <i class="fa fa-plus"></i> 添加店铺
                         </button>
@@ -11149,9 +11256,9 @@ ${shopsMap[link.shopId]}
                                 </div>
                                 
                                 <div>
-                                    <label for="product-id-search" class="block text-sm font-medium text-gray-700 mb-1">商品ID/规格编码搜索</label>
+                                    <label for="product-id-search" class="block text-sm font-medium text-gray-700 mb-1">商品ID/规格编码搜索(支持多条，空格逗号分隔)</label>
                                     <div class="flex space-x-2">
-                                        <input type="text" id="product-id-search" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 flex-1" placeholder="输入商品ID或规格编码...">
+                                        <input type="text" id="product-id-search" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 flex-1" placeholder="输入商品ID或规格编码">
                                         <button id="search-product-btn" class="btn btn-secondary flex items-center space-x-1">
                                             <i class="fa fa-search"></i>
                                             <span>搜索</span>
@@ -17279,6 +17386,14 @@ ${shopsMap[link.shopId]}
                     </select>
                 </div>
                 <div class="mb-4">
+                    <label for="add-link-shop" class="block text-sm font-medium text-gray-700 mb-1">
+                        店铺归类
+                    </label>
+                    <select id="add-link-shop" class="input-field w-full">
+                        <option value="">选择店铺</option>
+                    </select>
+                </div>
+                <div class="mb-4">
                     <label for="add-link-note" class="block text-sm font-medium text-gray-700 mb-1">
                         备注
                     </label>
@@ -17653,32 +17768,49 @@ ${shopsMap[link.shopId]}
     </div>
 
     <div id="add-shop-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-9 w-full max-w-2xl">
-            <div class="flex justify-between items-center mb-4">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-2xl flex flex-col">
+            <!-- 标题区 -->
+            <div class="border-b border-gray-200 px-6 py-4 flex justify-between items-center">
                 <h3 id="shop-modal-title" class="text-lg font-semibold text-gray-800">添加店铺</h3>
-                <button class="close-modal text-gray-500 hover:text-gray-700">
+                <button class="close-modal text-gray-500 hover:text-gray-700 transition-colors">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
-            <form id="add-shop-form">
-                <input type="hidden" id="shop-id">
-                <div class="mb-4">
-                    <label for="shop-name" class="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
-                    <input type="text" id="shop-name" class="input-field" required="">
-                </div>
-                <div class="mb-4">
-                    <label for="shop-display-id" class="block text-sm font-medium text-gray-700 mb-1">店铺ID</label>
-                    <input type="text" id="shop-display-id" class="input-field" placeholder="请输入店铺显示ID">
-                </div>
-                <div class="mb-4">
-                    <label for="shop-products" class="block text-sm font-medium text-gray-700 mb-1">商品ID（每行一个）</label>
-                    <textarea id="shop-products" class="input-field" rows="6" placeholder="请输入商品ID，每行一个"></textarea>
-                </div>
-                <div class="flex justify-end space-x-2">
-                    <button type="button" class="btn btn-secondary close-modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
-                </div>
-            </form>
+            
+            <!-- 内容区 -->
+            <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
+                <form id="add-shop-form">
+                    <input type="hidden" id="shop-id">
+                    <div class="mb-4">
+                        <label for="shop-name" class="block text-sm font-medium text-gray-700 mb-1">店铺名称</label>
+                        <input type="text" id="shop-name" class="input-field" required="">
+                    </div>
+                    <div class="mb-4">
+                        <label for="shop-display-id" class="block text-sm font-medium text-gray-700 mb-1">店铺ID</label>
+                        <input type="text" id="shop-display-id" class="input-field" placeholder="请输入店铺显示ID">
+                    </div>
+                    <div class="mb-4">
+                        <label for="shop-platform" class="block text-sm font-medium text-gray-700 mb-1">平台</label>
+                        <select id="shop-platform" class="input-field">
+                            <option value="">请选择平台</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <div class="mb-4">
+                            <label for="shop-note" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                            <textarea id="shop-note" class="input-field w-full" rows="3" placeholder="请输入店铺备注信息（可选）"></textarea>
+                        </div>
+                        <label for="shop-products" class="block text-sm font-medium text-gray-700 mb-1">商品ID（每行一个）</label>
+                        <textarea id="shop-products" class="input-field" rows="6" placeholder="请输入商品ID，每行一个"></textarea>
+                    </div>
+                </form>
+            </div>
+            
+            <!-- 底部操作区 -->
+            <div class="border-t border-gray-200 px-6 py-4 flex justify-end space-x-2 bg-gray-50 rounded-b-lg">
+                <button type="button" class="btn btn-secondary close-modal hover:bg-gray-600 transition-colors">取消</button>
+                <button type="submit" form="add-shop-form" class="btn btn-primary hover:bg-blue-600 transition-colors">保存</button>
+            </div>
         </div>
     </div>
 
@@ -17741,10 +17873,149 @@ ${shopsMap[link.shopId]}
             console.log('分类数据初始化完成:', JSON.stringify(costCategories, null, 2));
         }
 
+        // 初始化平台数据
+        function initializePlatforms() {
+            if (platforms.length === 0) {
+                platforms = ['淘宝', '京东', '拼多多', '抖音', '快手', '小红书'];
+                localStorage.setItem('platforms', JSON.stringify(platforms));
+            }
+        }
+
+        // 更新平台筛选器
+        function updatePlatformFilter() {
+            const platformFilter = document.getElementById('platform-filter');
+            const shopPlatformSelect = document.getElementById('shop-platform');
+            
+            // 确保platforms是数组，如果不是则使用默认列表
+            const platformList = Array.isArray(platforms) ? platforms : ['淘宝', '京东', '拼多多', '抖音', '快手', '小红书'];
+            
+            [platformFilter, shopPlatformSelect].forEach(select => {
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">' + (select.id === 'platform-filter' ? '所有平台' : '请选择平台') + '</option>';
+                    
+                    platformList.forEach(platform => {
+                        const option = document.createElement('option');
+                        option.value = platform;
+                        option.textContent = platform;
+                        select.appendChild(option);
+                    });
+                    
+                    if (currentValue && select.querySelector(`option[value="${currentValue}"]`)) {
+                        select.value = currentValue;
+                    }
+                }
+            });
+        }
+
+        // 显示平台管理模态框
+        function showPlatformManagementModal() {
+            const modal = document.getElementById('platform-management-modal');
+            const platformsList = document.getElementById('platforms-list');
+            
+            platformsList.innerHTML = '';
+            
+            platforms.forEach((platform, index) => {
+                const platformItem = document.createElement('div');
+                platformItem.className = 'flex justify-between items-center p-3 border-b border-gray-200 hover:bg-gray-50';
+                platformItem.innerHTML = `
+                    <span class="text-gray-800">${platform}</span>
+                    <button class="text-gray-400 hover:text-red-500" onclick="deletePlatform(${index})">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                `;
+                platformsList.appendChild(platformItem);
+            });
+            
+            modal.classList.remove('hidden');
+        }
+
+        // 添加平台
+        function addPlatform() {
+            const newPlatformName = document.getElementById('new-platform-name').value.trim();
+            
+            if (!newPlatformName) {
+                showToast('错误', '请输入平台名称', 'error');
+                return;
+            }
+            
+            if (platforms.includes(newPlatformName)) {
+                showToast('错误', '该平台已存在', 'error');
+                return;
+            }
+            
+            platforms.push(newPlatformName);
+            localStorage.setItem('platforms', JSON.stringify(platforms));
+            
+            updatePlatformFilter();
+            showPlatformManagementModal();
+            
+            document.getElementById('new-platform-name').value = '';
+            showToast('成功', '平台添加成功', 'success');
+        }
+
+        // 删除平台
+        function deletePlatform(index) {
+            const platform = platforms[index];
+            
+            // 检查是否有店铺使用该平台
+            const shopsUsingPlatform = shops.filter(shop => shop.platform === platform);
+            if (shopsUsingPlatform.length > 0) {
+                showToast('错误', `该平台正在被 ${shopsUsingPlatform.length} 个店铺使用，无法删除`, 'error');
+                return;
+            }
+            
+            platforms.splice(index, 1);
+            localStorage.setItem('platforms', JSON.stringify(platforms));
+            
+            updatePlatformFilter();
+            showPlatformManagementModal();
+            showToast('成功', '平台删除成功', 'success');
+        }
+
         // 动态定位悬浮窗 - 完全重写的解决方案
         document.addEventListener('DOMContentLoaded', function() {
+            // 初始化平台数据
+            initializePlatforms();
+            updatePlatformFilter();
             // 初始化分类数据
             initializeCategories();
+            
+            // 平台筛选器变更事件
+            const platformFilter = document.getElementById('platform-filter');
+            if (platformFilter) {
+                platformFilter.addEventListener('change', function() {
+                    renderShops();
+                });
+            }
+            
+            // 平台管理按钮点击事件
+            const platformSettingsBtn = document.getElementById('platform-settings');
+            if (platformSettingsBtn) {
+                platformSettingsBtn.addEventListener('click', function() {
+                    showPlatformManagementModal();
+                });
+            }
+            
+            // 平台管理模态框关闭按钮
+            const closePlatformManagementModal = document.getElementById('close-platform-management-modal');
+            const closePlatformManagementBtn = document.getElementById('close-platform-management-btn');
+            if (closePlatformManagementModal) {
+                closePlatformManagementModal.addEventListener('click', function() {
+                    document.getElementById('platform-management-modal').classList.add('hidden');
+                });
+            }
+            if (closePlatformManagementBtn) {
+                closePlatformManagementBtn.addEventListener('click', function() {
+                    document.getElementById('platform-management-modal').classList.add('hidden');
+                });
+            }
+            
+            // 添加平台按钮点击事件
+            const addPlatformBtn = document.getElementById('add-platform-btn');
+            if (addPlatformBtn) {
+                addPlatformBtn.addEventListener('click', addPlatform);
+            }
             // 获取所有tooltip容器
             const tooltipContainers = document.querySelectorAll('.tooltip-container');
             
@@ -17798,6 +18069,7 @@ ${shopsMap[link.shopId]}
         });
 
         let shops = JSON.parse(localStorage.getItem('shops')) || [];
+        let platforms = JSON.parse(localStorage.getItem('platforms')) || ['淘宝', '京东', '拼多多', '抖音', '快手', '小红书'];
         // 从localStorage加载数据，使用LZ-String解压缩
         let savedData = [];
         try {
@@ -18608,11 +18880,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -18626,6 +18905,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -18641,7 +18922,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -18651,6 +18934,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -18699,26 +18984,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -18755,6 +19064,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -19961,11 +20271,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -19979,6 +20296,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -19994,7 +20313,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -20004,6 +20325,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -20052,26 +20375,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -20108,6 +20455,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -21028,11 +21376,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -21046,6 +21401,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -21061,7 +21418,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -21071,6 +21430,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -21119,26 +21480,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -21175,6 +21560,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -22063,11 +22449,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -22081,6 +22474,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -22096,7 +22491,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -22106,6 +22503,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -22154,26 +22553,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -22210,6 +22633,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -23555,13 +23979,30 @@ ${shopsMap[link.shopId]}
             
             // 应用商品ID或规格编码搜索
             if (productIdSearch) {
-                filteredProducts = filteredProducts.filter(product => 
-                    product.id.toLowerCase().includes(productIdSearch.toLowerCase()) ||
-                    // 搜索商品的规格编码
-                    Object.values(product.skus).some(sku => 
-                        sku.code.toLowerCase().includes(productIdSearch.toLowerCase())
-                    )
-                );
+                // 分割搜索词，支持空格和逗号
+                const searchTerms = productIdSearch.split(/[\s,]+/).filter(term => term.trim() !== '');
+                
+                // 如果有多个搜索词，使用OR逻辑（满足任一条件即可）
+                if (searchTerms.length > 1) {
+                    filteredProducts = filteredProducts.filter(product => 
+                        searchTerms.some(term => 
+                            product.id.toLowerCase().includes(term.toLowerCase()) ||
+                            // 搜索商品的规格编码
+                            Object.values(product.skus).some(sku => 
+                                sku.code.toLowerCase().includes(term.toLowerCase())
+                            )
+                        )
+                    );
+                } else {
+                    // 单个搜索词，保持原有逻辑
+                    filteredProducts = filteredProducts.filter(product => 
+                        product.id.toLowerCase().includes(productIdSearch.toLowerCase()) ||
+                        // 搜索商品的规格编码
+                        Object.values(product.skus).some(sku => 
+                            sku.code.toLowerCase().includes(productIdSearch.toLowerCase())
+                        )
+                    );
+                }
             }
             
             // 重新渲染结果
@@ -24045,11 +24486,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -24063,6 +24511,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -24078,7 +24528,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -24088,6 +24540,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -24136,26 +24590,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -24192,6 +24670,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -25607,11 +26086,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -25625,6 +26111,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -25640,7 +26128,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -25650,6 +26140,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -25698,26 +26190,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -25754,6 +26270,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -26338,11 +26855,18 @@ ${shopsMap[link.shopId]}
                 document.getElementById('shop-name').value = shop.name;
                 document.getElementById('shop-display-id').value = shop.displayId || '';
                 document.getElementById('shop-products').value = shop.productIds.join('\n');
+                document.getElementById('shop-platform').value = shop.platform || '';
+                document.getElementById('shop-note').value = shop.note || '';
             } else {
                 title.textContent = '添加店铺';
                 form.reset();
                 document.getElementById('shop-id').value = '';
+                document.getElementById('shop-platform').value = '';
+                document.getElementById('shop-note').value = '';
             }
+            
+            // 更新平台选择器
+            updatePlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -26356,6 +26880,8 @@ ${shopsMap[link.shopId]}
             const shopName = document.getElementById('shop-name').value.trim();
             const shopDisplayId = document.getElementById('shop-display-id').value.trim();
             const shopProducts = document.getElementById('shop-products').value.trim();
+            const shopPlatform = document.getElementById('shop-platform').value;
+            const shopNote = document.getElementById('shop-note').value.trim();
             
             if (!shopName) {
                 showToast('错误', '请输入店铺名称', 'error');
@@ -26371,7 +26897,9 @@ ${shopsMap[link.shopId]}
                     ...shops[shopIndex],
                     name: shopName,
                     displayId: shopDisplayId,
-                    productIds: productIds
+                    productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote
                 };
                 showToast('成功', '店铺更新成功');
             } else {
@@ -26381,6 +26909,8 @@ ${shopsMap[link.shopId]}
                     name: shopName,
                     displayId: shopDisplayId,
                     productIds: productIds,
+                    platform: shopPlatform,
+                    note: shopNote,
                     createdAt: new Date().toISOString()
                 });
                 showToast('成功', '店铺添加成功');
@@ -26429,26 +26959,50 @@ ${shopsMap[link.shopId]}
         function renderShops() {
             const container = document.getElementById('shops-container');
             const empty = document.getElementById('shops-empty');
+            const platformFilter = document.getElementById('platform-filter');
+            const platformFilterValue = platformFilter ? platformFilter.value : '';
+            
+            // 根据平台筛选店铺
+            let filteredShops = shops;
+            if (platformFilterValue) {
+                filteredShops = shops.filter(shop => shop.platform === platformFilterValue);
+            }
             
             // 更新店铺数量显示
             const shopCountElement = document.getElementById('shop-count-number');
             if (shopCountElement) {
-                shopCountElement.textContent = shops.length;
+                shopCountElement.textContent = filteredShops.length;
             }
             
-            if (shops.length === 0) {
+            if (filteredShops.length === 0) {
                 container.innerHTML = '';
                 empty.classList.remove('hidden');
+                if (platformFilterValue) {
+                    empty.innerHTML = `
+                        <i class="fa fa-filter text-3xl mb-2"></i>
+                        <p>未找到"${platformFilterValue}"平台的店铺</p>
+                    `;
+                } else {
+                    empty.innerHTML = `
+                        <i class="fa fa-info-circle text-3xl mb-2"></i>
+                        <p>暂无店铺，请添加</p>
+                    `;
+                }
                 return;
             }
             
             empty.classList.add('hidden');
             
-            container.innerHTML = shops.map(shop => `
+            container.innerHTML = filteredShops.map(shop => `
                 <div class="bg-white rounded-xl border border-gray-100 p-6 mb-6 shadow-sm hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                     <div class="flex justify-between items-center mb-6">
                         <div class="flex items-center space-x-4">
-                            <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">${shop.name}</h3>
+                            <div class="flex rounded-lg overflow-hidden border-2 border-gray-300">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 text-lg font-bold">${shop.name}</h3>
+                                ${shop.platform ? `<span class="inline-flex items-center px-4 py-3 text-lg font-bold bg-white text-gray-700">
+                                    ${shop.platform}
+                                </span>` : ''}
+                            </div>
                             <span class="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800 border border-blue-200">
                                 <i class="fa fa-cubes mr-1.5"></i> ${shop.productIds.length} 个商品
                             </span>
@@ -26485,6 +27039,7 @@ ${shopsMap[link.shopId]}
                         </button>
                         <div class="text-xs text-gray-400">
                             ID: ${shop.displayId || shop.id}
+
                         </div>
                     </div>
                 </div>
@@ -28257,6 +28812,8 @@ ${shopsMap[link.shopId]}
             
             // 页面大小改变事件
             if (pageSizeSelect) {
+                // 移除可能存在的旧事件监听器，防止重复绑定
+                pageSizeSelect.onchange = null;
                 pageSizeSelect.addEventListener('change', function() {
                     paymentPageSize = parseInt(this.value);
                     paymentCurrentPage = 1;
@@ -28266,7 +28823,14 @@ ${shopsMap[link.shopId]}
             
             // 上一页事件
             if (prevButton) {
-                prevButton.addEventListener('click', function() {
+                // 彻底清除所有事件监听器
+                const newPrevButton = prevButton.cloneNode(true);
+                prevButton.parentNode.replaceChild(newPrevButton, prevButton);
+                
+                // 添加新的事件监听器
+                newPrevButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    e.preventDefault(); // 阻止默认行为
                     if (paymentCurrentPage > 1) {
                         paymentCurrentPage--;
                         renderPaymentRecords();
@@ -28276,7 +28840,14 @@ ${shopsMap[link.shopId]}
             
             // 下一页事件
             if (nextButton) {
-                nextButton.addEventListener('click', function() {
+                // 彻底清除所有事件监听器
+                const newNextButton = nextButton.cloneNode(true);
+                nextButton.parentNode.replaceChild(newNextButton, nextButton);
+                
+                // 添加新的事件监听器
+                newNextButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    e.preventDefault(); // 阻止默认行为
                     if (paymentCurrentPage < paymentTotalPages) {
                         paymentCurrentPage++;
                         renderPaymentRecords();
@@ -28872,8 +29443,16 @@ ${shopsMap[link.shopId]}
             const pageJumpInput = document.getElementById('purchase-page-jump');
             const jumpButton = document.getElementById('purchase-jump-btn');
 
+            // 彻底清除所有事件监听器
             if (prevButton) {
-                prevButton.addEventListener('click', () => {
+                // 移除所有类型的事件监听器
+                const newPrevButton = prevButton.cloneNode(true);
+                prevButton.parentNode.replaceChild(newPrevButton, prevButton);
+                
+                // 添加新的事件监听器
+                newPrevButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    e.preventDefault(); // 阻止默认行为
                     console.log('上一页点击，当前页:', purchaseCurrentPage);
                     if (purchaseCurrentPage > 1) {
                         purchaseCurrentPage--;
@@ -28883,7 +29462,14 @@ ${shopsMap[link.shopId]}
             }
 
             if (nextButton) {
-                nextButton.addEventListener('click', () => {
+                // 彻底清除所有事件监听器
+                const newNextButton = nextButton.cloneNode(true);
+                nextButton.parentNode.replaceChild(newNextButton, nextButton);
+                
+                // 添加新的事件监听器
+                newNextButton.addEventListener('click', (e) => {
+                    e.stopPropagation(); // 阻止事件冒泡
+                    e.preventDefault(); // 阻止默认行为
                     console.log('下一页点击，当前页:', purchaseCurrentPage, '总页数:', purchaseTotalPages);
                     if (purchaseCurrentPage < purchaseTotalPages) {
                         purchaseCurrentPage++;
