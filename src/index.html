@@ -2868,6 +2868,28 @@
             
             // 关闭任务详情模态框
             function closeTaskDetailModal() {
+                // 保存对任务的修改
+                if (currentTaskId) {
+                    const task = tasks.find(t => t.id === currentTaskId);
+                    if (task) {
+                        const titleInput = document.getElementById('task-detail-title');
+                        const notesTextarea = document.getElementById('task-notes');
+                        
+                        // 更新任务标题和备注
+                        if (titleInput.value.trim() !== '') {
+                            task.title = titleInput.value.trim();
+                        }
+                        task.notes = notesTextarea.value.trim() || null;
+                        
+                        // 保存更新后的任务
+                        saveTasks();
+                        
+                        // 重新加载任务列表以更新UI
+                        loadTasks();
+                    }
+                }
+                
+                // 关闭模态框
                 document.getElementById('task-detail-modal').classList.add('hidden');
                 currentTaskId = null;
             }
@@ -3672,6 +3694,9 @@
                 }
             }
 
+            // 存储活动的提醒定时器ID
+            let activeReminders = {};
+            
             // 注册提醒
             function scheduleReminder(task) {
                 const now = new Date();
@@ -3679,16 +3704,24 @@
                 const timeUntilReminder = reminderTime - now;
 
                 if (timeUntilReminder > 0) {
-                    setTimeout(() => {
-                        // 检查任务是否仍然存在且未完成
+                    // 清除可能存在的旧提醒
+                    if (activeReminders[task.id]) {
+                        clearTimeout(activeReminders[task.id]);
+                    }
+                    
+                    // 创建新的提醒并存储定时器ID
+                    activeReminders[task.id] = setTimeout(() => {
+                        // 检查任务是否仍然存在、未完成且提醒未被取消
                         const updatedTask = tasks.find(t => t.id === task.id);
-                        if (updatedTask && !updatedTask.completed) {
+                        if (updatedTask && !updatedTask.completed && updatedTask.reminder) {
                             // 设置需要关注标志
                             updatedTask.needsAttention = true;
                             saveTasks();
                             loadTasks(); // 重新加载任务列表以显示红色标记
                             showNotification(updatedTask.title);
                         }
+                        // 无论如何都清除这个定时器的记录
+                        delete activeReminders[task.id];
                     }, timeUntilReminder);
                 }
             }
@@ -3701,6 +3734,12 @@
                 if (task && task.reminder) {
                     task.reminder = null;
                     task.needsAttention = false;
+                    
+                    // 清除相关的定时器
+                    if (activeReminders[currentTaskId]) {
+                        clearTimeout(activeReminders[currentTaskId]);
+                        delete activeReminders[currentTaskId];
+                    }
                     
                     // 更新按钮状态
                     document.getElementById('set-reminder-btn').innerHTML = `
@@ -11258,7 +11297,7 @@ ${shopsMap[link.shopId]}
                                 <div>
                                     <label for="product-id-search" class="block text-sm font-medium text-gray-700 mb-1">商品ID/规格编码搜索(支持多条，空格逗号分隔)</label>
                                     <div class="flex space-x-2">
-                                        <input type="text" id="product-id-search" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 flex-1" placeholder="输入商品ID或规格编码">
+                                        <input type="text" id="product-id-search" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 flex-1" placeholder="输入商品ID或规格编码，支持空格或逗号分隔多个关键词...">
                                         <button id="search-product-btn" class="btn btn-secondary flex items-center space-x-1">
                                             <i class="fa fa-search"></i>
                                             <span>搜索</span>
