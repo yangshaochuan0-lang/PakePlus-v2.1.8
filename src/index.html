@@ -1600,8 +1600,36 @@
                 <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
                     <div class="space-y-4">
                         <input type="text" id="note-title" class="input-field text-xl font-semibold" placeholder="笔记标题">
-                        <div class="mb-2">
-                            <div class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-t-lg border border-gray-200">
+                        <div class="mb-2 sticky top-0 z-10 bg-white">
+                            <div class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-t-lg border border-gray-200 shadow-sm">
+                                <!-- Undo/Redo -->
+                                <button class="p-2 rounded hover:bg-gray-200" title="撤销" onclick="document.execCommand('undo', false, null);">
+                                    <i class="fa fa-undo"></i>
+                                </button>
+                                <button class="p-2 rounded hover:bg-gray-200" title="重做" onclick="document.execCommand('redo', false, null);">
+                                    <i class="fa fa-repeat"></i>
+                                </button>
+
+                                <!-- Font Size -->
+                                <div class="relative inline-block">
+                                    <button id="font-size-dropdown-btn" class="p-2 rounded hover:bg-gray-200 flex items-center" title="字号">
+                                        <span id="current-font-size" class="mr-1">16px</span>
+                                        <i class="fa fa-chevron-down text-xs"></i>
+                                    </button>
+                                    <div id="font-size-dropdown" class="absolute top-full left-0 mt-1 w-32 bg-white rounded-md shadow-lg hidden z-20 border border-gray-200">
+                                        <div class="py-1">
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('12px');">12px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('14px');">14px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('16px');">16px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('18px');">18px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('24px');">24px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('32px');">32px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('36px');">36px</button>
+                                            <button class="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100" onclick="setFontSize('48px');">48px</button>
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <!-- Text Style -->
                                 <button class="p-2 rounded hover:bg-gray-200" title="无序列表" onclick="insertMarkdown('note-content', '• ')">
                                     <i class="fa fa-list-ul"></i>
@@ -1632,16 +1660,18 @@
                                 </button>
 
                                 <!-- Headings -->
-                                <button class="p-2 rounded hover:bg-gray-200" title="标题 H1" onclick="document.execCommand('formatBlock', false, '<h1>')">
+                                <button class="p-2 rounded hover:bg-gray-200 font-medium" title="标题 H1" onclick="setHeading('h1')">
                                     H1
                                 </button>
-                                <button class="p-2 rounded hover:bg-gray-200" title="标题 H2" onclick="document.execCommand('formatBlock', false, '<h2>')">
+                                <button class="p-2 rounded hover:bg-gray-200 font-medium" title="标题 H2" onclick="setHeading('h2')">
                                     H2
                                 </button>
-                                <button class="p-2 rounded hover:bg-gray-200" title="标题 H3" onclick="document.execCommand('formatBlock', false, '<h3>')">
+                                <button class="p-2 rounded hover:bg-gray-200 font-medium" title="标题 H3" onclick="setHeading('h3')">
                                     H3
                                 </button>
-
+                                <button class="p-2 rounded hover:bg-gray-200 font-medium" title="正文" onclick="setHeading('p')">
+                                    正文
+                                </button>
                                 <!-- Alignment -->
                                 <button class="p-2 rounded hover:bg-gray-200" title="左对齐" onclick="document.execCommand('justifyLeft', false, null);">
                                     <i class="fa fa-align-left"></i>
@@ -1928,9 +1958,198 @@
             window.notes = notes;
             window.saveNotes = saveNotes;
             
+            // 富文本编辑器增强功能
+            function setHeading(headingType) {
+                // 先清除所有内联样式，避免样式冲突
+                document.execCommand('removeFormat', false, null);
+                
+                // 然后设置标题格式
+                if (headingType === 'p') {
+                    document.execCommand('formatBlock', false, 'p');
+                } else {
+                    document.execCommand('formatBlock', false, headingType);
+                }
+                
+                // 确保应用正确的字体大小和间距
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+                        ? range.commonAncestorContainer.parentNode 
+                        : range.commonAncestorContainer;
+                    
+                    // 找到所有选中的文本节点的直接父元素
+                    const selectedElements = [];
+                    if (range.startContainer === range.endContainer && range.startContainer.nodeType === Node.TEXT_NODE) {
+                        selectedElements.push(range.startContainer.parentNode);
+                    } else {
+                        // 遍历选区中的所有元素
+                        const walker = document.createTreeWalker(
+                            range.commonAncestorContainer,
+                            NodeFilter.SHOW_ELEMENT,
+                            null,
+                            false
+                        );
+                        while (walker.nextNode()) {
+                            const node = walker.currentNode;
+                            if (range.intersectsNode(node)) {
+                                selectedElements.push(node);
+                            }
+                        }
+                    }
+                    
+                    // 根据标题类型设置相应的字体大小和间距
+                    let fontSize;
+                    switch(headingType) {
+                        case 'h1':
+                            fontSize = '24px';
+                            break;
+                        case 'h2':
+                            fontSize = '20px';
+                            break;
+                        case 'h3':
+                            fontSize = '18px';
+                            break;
+                        default: // 'p' 或其他
+                            fontSize = '16px';
+                    }
+                    
+                    // 为每个元素设置字体大小和相应的行高与字间距
+                    selectedElements.forEach(el => {
+                        el.style.fontSize = fontSize;
+                        
+                        // 从字体大小中提取数值
+                        const sizeValue = parseFloat(fontSize);
+                        
+                        // 根据字体大小动态计算行高（字体大小的1.5倍通常是比较舒适的行高）
+                        const lineHeight = sizeValue * 1.5 + 'px';
+                        
+                        // 根据字体大小动态计算字间距（小字体用小字间距，大字体用大字间距）
+                        const letterSpacing = (sizeValue / 32) + 'px';
+                        
+                        // 应用计算出的行高和字间距
+                        el.style.lineHeight = lineHeight;
+                        el.style.letterSpacing = letterSpacing;
+                        
+                        // 对于标题，还可以设置粗体
+                        if (headingType === 'h1' || headingType === 'h2' || headingType === 'h3') {
+                            el.style.fontWeight = 'bold';
+                        } else {
+                            el.style.fontWeight = 'normal';
+                        }
+                    });
+                    
+                    // 更新字号按钮上显示的当前字号
+                    const currentFontSizeElement = document.getElementById('current-font-size');
+                    if (currentFontSizeElement) {
+                        currentFontSizeElement.textContent = fontSize;
+                    }
+                }
+            }
+            
+            // 更新字号按钮显示的当前字号
+            function updateFontSizeButton() {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                    const range = selection.getRangeAt(0);
+                    const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+                        ? range.commonAncestorContainer.parentNode 
+                        : range.commonAncestorContainer;
+                    
+                    // 获取计算后的字体大小
+                    const computedStyle = window.getComputedStyle(parentElement);
+                    const fontSize = computedStyle.fontSize;
+                    
+                    // 更新按钮显示
+                    const currentFontSizeElement = document.getElementById('current-font-size');
+                    if (currentFontSizeElement) {
+                        currentFontSizeElement.textContent = fontSize;
+                    }
+                }
+            }
+
+            // 设置字体大小
+            function setFontSize(size) {
+                document.execCommand('fontSize', false, '3'); // 先将字体大小重置为默认值
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    const range = selection.getRangeAt(0);
+                    const parentElement = range.commonAncestorContainer.nodeType === Node.TEXT_NODE 
+                        ? range.commonAncestorContainer.parentNode 
+                        : range.commonAncestorContainer;
+                    
+                    // 找到所有选中的文本节点的直接父元素
+                    const selectedElements = [];
+                    if (range.startContainer === range.endContainer && range.startContainer.nodeType === Node.TEXT_NODE) {
+                        selectedElements.push(range.startContainer.parentNode);
+                    } else {
+                        // 遍历选区中的所有元素
+                        const walker = document.createTreeWalker(
+                            range.commonAncestorContainer,
+                            NodeFilter.SHOW_ELEMENT,
+                            null,
+                            false
+                        );
+                        while (walker.nextNode()) {
+                            const node = walker.currentNode;
+                            if (range.intersectsNode(node)) {
+                                selectedElements.push(node);
+                            }
+                        }
+                    }
+                    
+                    // 为每个元素设置字体大小和相应的行高与字间距
+                    selectedElements.forEach(el => {
+                        el.style.fontSize = size;
+                        
+                        // 从字体大小中提取数值
+                        const sizeValue = parseFloat(size);
+                        
+                        // 根据字体大小动态计算行高（字体大小的1.5倍通常是比较舒适的行高）
+                        const lineHeight = sizeValue * 1.5 + 'px';
+                        
+                        // 根据字体大小动态计算字间距（小字体用小字间距，大字体用大字间距）
+                        const letterSpacing = (sizeValue / 32) + 'px';
+                        
+                        // 应用计算出的行高和字间距
+                        el.style.lineHeight = lineHeight;
+                        el.style.letterSpacing = letterSpacing;
+                    });
+                    
+                    // 更新按钮上显示的当前字号
+                    const currentFontSizeElement = document.getElementById('current-font-size');
+                    if (currentFontSizeElement) {
+                        currentFontSizeElement.textContent = size;
+                    }
+                }
+            }
+
             // 页面加载时检查登录状态
             document.addEventListener('DOMContentLoaded', function() {
                 checkLoginStatus();
+
+                // 监听选中文本的字体大小变化，更新按钮显示
+                document.addEventListener('mouseup', function() {
+                    updateFontSizeButton();
+                });
+                document.addEventListener('keyup', function() {
+                    updateFontSizeButton();
+                });
+
+                // 控制字号下拉菜单的显示和隐藏
+                const fontSizeBtn = document.getElementById('font-size-dropdown-btn');
+                const fontSizeDropdown = document.getElementById('font-size-dropdown');
+                if (fontSizeBtn && fontSizeDropdown) {
+                    fontSizeBtn.addEventListener('click', function() {
+                        fontSizeDropdown.classList.toggle('hidden');
+                    });
+                    // 点击页面其他地方关闭下拉菜单
+                    document.addEventListener('click', function(event) {
+                        if (!fontSizeBtn.contains(event.target) && !fontSizeDropdown.contains(event.target)) {
+                            fontSizeDropdown.classList.add('hidden');
+                        }
+                    });
+                }
                 
                 // 绑定成本项目详情模态框关闭按钮事件
                 const closeCostItemDetailsModal = document.getElementById('close-cost-item-details-modal');
