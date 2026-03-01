@@ -1407,7 +1407,7 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
+                <div class="flex-1 overflow-y-auto p-6">
                     <div class="space-y-6">
                         <div>
                             <input type="text" id="task-detail-title" class="input-field text-xl font-semibold" placeholder="任务名称">
@@ -1588,7 +1588,7 @@
 
         <!-- Add/Edit Note Modal -->
         <div id="note-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-            <div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-6xl h-[80vh] flex flex-col">
+            <div class="bg-white rounded-lg shadow-lg w-[90vw] max-w-6xl max-h-[90vh] flex flex-col">
                 <div class="p-6 border-b border-gray-200">
                     <div class="flex justify-between items-center">
                         <h3 class="text-lg font-semibold text-gray-800">笔记</h3>
@@ -1597,11 +1597,11 @@
                         </button>
                     </div>
                 </div>
-                <div class="flex-1 overflow-y-auto p-6" style="max-height: 60vh;">
+                <div class="flex-1 overflow-y-auto p-6">
                     <div class="space-y-4">
                         <input type="text" id="note-title" class="input-field text-xl font-semibold" placeholder="笔记标题">
                         <div class="mb-2 sticky top-0 z-10 bg-white">
-                            <div class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-t-lg border border-gray-200 shadow-sm">
+                            <div class="flex flex-wrap gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 shadow-md">
                                 <!-- Undo/Redo -->
                                 <button class="p-2 rounded hover:bg-gray-200" title="撤销" onclick="document.execCommand('undo', false, null);">
                                     <i class="fa fa-undo"></i>
@@ -2159,6 +2159,15 @@
 
             // 页面加载时检查登录状态
             document.addEventListener('DOMContentLoaded', function() {
+                // 添加全局错误处理来捕获querySelector错误
+                window.addEventListener('error', function(e) {
+                    if (e.message && e.message.includes('querySelector') && (e.message.includes('about:srcdoc') || e.message.includes('is not a valid selector'))) {
+                        console.warn('捕获到querySelector错误:', e.message);
+                        e.preventDefault();
+                        return true;
+                    }
+                });
+                
                 checkLoginStatus();
 
                 // 监听选中文本的字体大小变化，更新按钮显示
@@ -3622,12 +3631,24 @@
                     });
                     
                     // 应用当前视图的筛选
-                    const currentViewBtn = document.querySelector('.note-nav-btn.bg-primary/10');
+                    // 使用更可靠的方法来查找当前激活的视图按钮
+                    const navButtons = document.querySelectorAll('.note-nav-btn');
+                    let currentViewBtn = null;
+                    for (let i = 0; i < navButtons.length; i++) {
+                        const btn = navButtons[i];
+                        if (btn.classList.contains('bg-primary/10') || btn.classList.contains('bg-primary') || btn.classList.contains('text-primary')) {
+                            currentViewBtn = btn;
+                            break;
+                        }
+                    }
                     if (currentViewBtn) {
                         const currentView = currentViewBtn.dataset.noteView;
                         switchNoteView(currentView);
                     } else if (currentListId && currentListId !== 'all') {
                         filterNotesByList(currentListId);
+                    } else {
+                        // 默认显示"默认"视图
+                        switchNoteView('default');
                     }
                 }
             }
@@ -3660,49 +3681,64 @@
             
             // 打开笔记模态框
             function openNoteModal(noteId = null) {
-                currentNoteId = noteId;
-                window.currentNoteId = currentNoteId; // 同步更新全局变量
-                const modal = document.getElementById('note-modal');
-                const titleInput = document.getElementById('note-title');
-                const contentTextarea = document.getElementById('note-content');
-                const deleteBtn = document.getElementById('delete-note-btn');
-                const dateSpan = document.getElementById('note-date');
-                
-                // 重置表单
-                titleInput.value = '';
-                contentTextarea.value = '';
-                
-                if (noteId) {
-                    // 编辑现有笔记
-                    const note = notes.find(n => n.id === noteId);
-                    if (note) {
-                        titleInput.value = note.title;
-                        contentTextarea.innerHTML = note.content;
-                        deleteBtn.classList.remove('hidden');
-                        
-                        dateSpan.textContent = `创建于 ${formatDate(new Date(note.createdAt))}${note.updatedAt && note.updatedAt !== note.createdAt ? ` · 更新于 ${formatDate(new Date(note.updatedAt))}` : ''}`;
+                try {
+                    currentNoteId = noteId;
+                    window.currentNoteId = currentNoteId; // 同步更新全局变量
+                    const modal = document.getElementById('note-modal');
+                    const titleInput = document.getElementById('note-title');
+                    const contentTextarea = document.getElementById('note-content');
+                    const deleteBtn = document.getElementById('delete-note-btn');
+                    const dateSpan = document.getElementById('note-date');
+                    
+                    // 重置表单
+                    titleInput.value = '';
+                    contentTextarea.value = '';
+                    
+                    if (noteId) {
+                        // 编辑现有笔记
+                        const note = notes.find(n => n.id === noteId);
+                        if (note) {
+                            titleInput.value = note.title;
+                            contentTextarea.innerHTML = note.content;
+                            deleteBtn.classList.remove('hidden');
+                            
+                            dateSpan.textContent = `创建于 ${formatDate(new Date(note.createdAt))}${note.updatedAt && note.updatedAt !== note.createdAt ? ` · 更新于 ${formatDate(new Date(note.updatedAt))}` : ''}`;
+                        }
+                    } else {
+                        // 新建笔记
+                        deleteBtn.classList.add('hidden');
+                        dateSpan.textContent = '';
+                        contentTextarea.innerHTML = '';
                     }
-                } else {
-                    // 新建笔记
-                    deleteBtn.classList.add('hidden');
-                    dateSpan.textContent = '';
-                    contentTextarea.innerHTML = '';
-                }
-                
-                modal.classList.remove('hidden');
-                
-                // 延迟恢复复选框状态，确保DOM已更新
-                setTimeout(() => {
-                    restoreCheckboxStates();
-                }, 100);
+                    
+                    modal.classList.remove('hidden');
+                    
+                    // 延迟恢复复选框状态，确保DOM已更新
+                    setTimeout(() => {
+                        try {
+                            restoreCheckboxStates();
+                        } catch (error) {
+                            console.warn('恢复复选框状态时出错:', error);
+                        }
+                    }, 100);
 
-                // 标记为已查看，恢复任务框样式
-                if (taskId) {
-                    const task = tasks.find(t => t.id === taskId);
-                    if (task && task.needsAttention) {
-                        task.needsAttention = false;
-                        saveTasks();
-                        renderTasks();
+                    // 标记为已查看，恢复任务框样式
+                    // 确保taskId变量存在
+                    const currentTaskId = window.taskId || null;
+                    if (currentTaskId) {
+                        const task = tasks.find(t => t.id === currentTaskId);
+                        if (task && task.needsAttention) {
+                            task.needsAttention = false;
+                            saveTasks();
+                            renderTasks();
+                        }
+                    }
+                } catch (error) {
+                    console.warn('打开笔记模态框时出错:', error);
+                    // 即使出错也要确保模态框能正常显示
+                    const modal = document.getElementById('note-modal');
+                    if (modal) {
+                        modal.classList.remove('hidden');
                     }
                 }
             }
@@ -3745,7 +3781,7 @@
                         content: contentTextarea.innerHTML,
                         createdAt: new Date().toISOString(),
                         updatedAt: new Date().toISOString(),
-                        listId: currentListId || 'all', // 添加列表ID，默认为'all'
+                        listId: currentListId === 'all' ? 'undefined' : currentListId, // 默认为'undefined'表示默认列表
                         starred: false // 添加星标状态
                     };
                     
@@ -3815,16 +3851,43 @@
             // 插入复选框并处理状态
             function insertCheckbox() {
                 const contentTextarea = document.getElementById('note-content');
-                const checkboxId = 'checkbox_' + generateId();
+                // 确保generateId函数可用
+                const generateIdFunc = window.generateId || function() {
+                    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+                };
+                const checkboxId = 'checkbox_' + generateIdFunc();
                 
-                // 创建复选框HTML，包含完整的状态管理
-                const checkboxHTML = `<input type="checkbox" id="${checkboxId}" class="mr-2 editing-breathing-bg" onchange="this.setAttribute('data-checked', this.checked); if (window.currentNoteId) { window.saveNoteWithCheckboxes(); }">`;
-                
-                // 插入复选框
-                document.execCommand('insertHTML', false, checkboxHTML);
-                
-                // 聚焦回内容区域
-                contentTextarea.focus();
+                try {
+                    // 创建复选框HTML，包含完整的状态管理
+                    const checkboxHTML = `<input type="checkbox" id="${checkboxId}" class="mr-2 editing-breathing-bg" onchange="this.setAttribute('data-checked', this.checked); if (window.currentNoteId) { window.saveNoteWithCheckboxes(); }">`;
+                    
+                    // 插入复选框
+                    document.execCommand('insertHTML', false, checkboxHTML);
+                    
+                    // 聚焦回内容区域
+                    contentTextarea.focus();
+                } catch (error) {
+                    console.warn('插入复选框时出错:', error);
+                    // 如果execCommand失败，使用替代方法
+                    const range = window.getSelection().getRangeAt(0);
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.id = checkboxId;
+                    checkbox.className = 'mr-2 editing-breathing-bg';
+                    checkbox.onchange = function() {
+                        this.setAttribute('data-checked', this.checked);
+                        if (window.currentNoteId) {
+                            window.saveNoteWithCheckboxes();
+                        }
+                    };
+                    range.insertNode(checkbox);
+                    
+                    // 将光标移动到复选框后面
+                    range.setStartAfter(checkbox);
+                    range.setEndAfter(checkbox);
+                    window.getSelection().removeAllRanges();
+                    window.getSelection().addRange(range);
+                }
             }
             
             // 保存包含复选框状态的笔记
@@ -8883,19 +8946,21 @@ ${shopsMap[link.shop]}
                                                            data-linked="${spec.linkedCost ? 'true' : 'false'}"
                                                            ${spec.linkedCost ? 'readonly' : ''}>
                                                     <button type="button" 
-                                                            class="btn btn-secondary text-xs py-0 px-0" 
+                                                            class="text-xs p-0" 
                                                             onclick="toggleCostLink(${linkIndex}, ${productIndex}, ${specIndex})"
                                                             title="${spec.linkedCost ? '取消关联规格成本' : '关联规格成本'}"
-                                                            style="width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;">
-                                                        <i class="fa fa-link" style="font-size: 14px; color: ${spec.linkedCost ? '#10b981' : ''};"></i>
+                                                            style="width: 20px; height: 28px; display: flex; align-items: center; justify-content: center; background: none; border: none;">
+                                                        <i class="fa fa-link" style="font-size: 14px; color: ${spec.linkedCost ? '#10b981' : '#666'}; transform: rotate(45deg);"></i>
                                                     </button>
                                                 </div>
                                             </td>
                                             <td class="px-3 py-2 whitespace-nowrap text-center">
-                                                <input type="number" class="input-field text-sm py-1 px-2 text-center" 
-                                                       value="${couponAmount}" 
-                                                       step="0.01" min="0" 
-                                                       onchange="updateSpecField(${linkIndex}, ${productIndex}, ${specIndex}, 'couponAmount', this.value)" style="max-width: 70px;">
+                                                <div class="flex items-center justify-center space-x-1">
+                                                    <input type="number" class="input-field text-sm py-1 px-2 text-center" 
+                                                           value="${couponAmount}" 
+                                                           step="0.01" min="0" 
+                                                           onchange="updateSpecField(${linkIndex}, ${productIndex}, ${specIndex}, 'couponAmount', this.value)" style="max-width: 90px;">
+                                                </div>
                                             </td>
                                             <td class="px-3 py-2 whitespace-nowrap text-center">
                                                 <input type="number" class="input-field text-sm py-1 px-2 text-center" 
