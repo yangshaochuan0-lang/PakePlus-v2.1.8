@@ -16099,6 +16099,8 @@ ${shopsMap[link.shopId]}
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                                 <option value="100">100</option>
+                                <option value="200">200</option>
+                                <option value="500">500</option>
                             </select>
                             <span class="text-sm text-gray-600">条/页</span>
                         </div>
@@ -17121,6 +17123,8 @@ ${shopsMap[link.shopId]}
                                 <option value="20">20</option>
                                 <option value="50">50</option>
                                 <option value="100">100</option>
+                                <option value="200">200</option>
+                                <option value="500">500</option>
                             </select> 条
                         </div>
                         <div class="flex items-center space-x-2">
@@ -28719,10 +28723,10 @@ ${shopsMap[link.shopId]}
             updatePaymentProductSelects();
             updatePaymentSupplierSelects();
             
-            // 添加一些模拟数据用于测试
-            if (!purchaseData.paymentRecords || purchaseData.paymentRecords.length === 0) {
-                addMockPaymentRecords();
-            }
+            // 不再自动添加模拟数据
+            // if (!purchaseData.paymentRecords || purchaseData.paymentRecords.length === 0) {
+            //     addMockPaymentRecords();
+            // }
             
             renderPaymentRecords();
             updatePaymentStatistics();
@@ -29577,9 +29581,11 @@ ${shopsMap[link.shopId]}
             if (filteredPurchases !== null) {
                 purchaseFilteredData = filteredPurchases;
                 purchaseCurrentPage = 1;
-            } else {
-                // 否则使用所有采购数据
+            }
+            // 如果没有过滤数据传入，且当前过滤数据为空或未定义，则使用所有采购数据
+            else if (!purchaseFilteredData || purchaseFilteredData.length === 0) {
                 purchaseFilteredData = purchaseData.purchases;
+                purchaseCurrentPage = 1;
             }
             
             // 更新数据统计
