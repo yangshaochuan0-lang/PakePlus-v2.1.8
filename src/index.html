@@ -1242,7 +1242,7 @@
 
     <!-- Cost Category Management Modal -->
     <div id="category-management-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="category-modal-title" class="text-lg font-semibold text-gray-800">分类管理</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
@@ -7351,7 +7351,7 @@
             function getCostTypeName(type) {
                 const typeNames = {
                     'express': '快递成本',
-                    'platform': '服务费售后人力成本',
+                    'platform': '管理成本',
                     'packaging': '包装成本',
                     'accessory': '产品成本'
                 };
@@ -12377,7 +12377,7 @@ ${shopsMap[link.shopId]}
                     showToast('提示', '规格编码已修改，已自动取消成本关联', 'info');
                 }
                 
-                const numValue = ['cost', 'couponAmount', 'activityDiscount', 'sellingPrice'].includes(field) ? (parseFloat(value) || 0) : value;
+                const numValue = ['cost', 'couponAmount', 'activityDiscount', 'sellingPrice'].includes(field) ? (parseFloat(value) || 0) : (field === 'specCode' ? newSpecCode : value);
                 spec[field] = numValue;
                 savePricingData();
                 renderDisplayLinks();
@@ -21060,7 +21060,7 @@ ${shopsMap[link.shopId]}
     </div>
 
     <div id="add-sku-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-semibold text-gray-800">添加规格成本</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
@@ -21117,7 +21117,7 @@ ${shopsMap[link.shopId]}
 
     <!-- Add Cost Modal (for express, packaging, platform, accessory) -->
     <div id="add-cost-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="cost-modal-title" class="text-lg font-semibold text-gray-800">添加管理项目</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
@@ -21186,7 +21186,7 @@ ${shopsMap[link.shopId]}
                 </div>
                 <div class="mb-4">
                     <label for="cost-amount" class="block text-sm font-medium text-gray-700 mb-1">金额 (元)</label>
-                    <input type="number" id="cost-amount" class="input-field" step="0.01" min="0" required="">
+                    <input type="number" id="cost-amount" class="input-field" step="0.001" min="0" required="">
                 </div>
                 <div class="mb-4">
                     <label for="cost-note" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
@@ -21202,7 +21202,7 @@ ${shopsMap[link.shopId]}
 
     <!-- Cost Category Management Modal -->
     <div id="category-management-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="category-modal-title" class="text-lg font-semibold text-gray-800">分类管理</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
@@ -21228,7 +21228,7 @@ ${shopsMap[link.shopId]}
     </div>
     <!-- Pricing Category Management Modal -->
     <div id="pricing-category-management-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
-        <div class="bg-white rounded-lg p-6 w-full max-w-xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-3xl">
             <div class="flex justify-between items-center mb-4">
                 <h3 id="category-modal-title" class="text-lg font-semibold text-gray-800">分类管理</h3>
                 <button class="close-modal text-gray-500 hover:text-gray-700">
@@ -26037,7 +26037,7 @@ ${shopsMap[link.shopId]}
                                 </div>
                                 <div class="bg-gray-50 rounded-lg px-4 py-3 text-right flex-shrink-0 ml-4">
                                     <p class="text-xs font-medium text-gray-500">金额</p>
-                                    <p class="text-xl font-bold text-gray-800">¥${item.amount.toFixed(2)}</p>
+                                    <p class="text-xl font-bold text-gray-800">¥${item.amount.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 3})}</p>
                                 </div>
                             </div>
                             <div class="flex justify-between items-center">
@@ -29408,7 +29408,7 @@ ${shopsMap[link.shopId]}
         }
         
         // 添加引用成本项目
-        function addReferencedCostItem(costType = 'packaging', costId = '', quantity = 1, index = null) {
+        function addReferencedCostItem(costType = 'express', costId = '', quantity = 1, index = null) {
             const container = document.getElementById('referenced-costs-container');
             const itemIndex = index !== null ? index : container.children.length;
             
@@ -29571,17 +29571,25 @@ ${shopsMap[link.shopId]}
         }
         
         // 事件处理函数
-        window.onCostTypeChange = function(select, index) {
+        // 确保在全局作用域中定义函数
+        function onCostTypeChange(select, index) {
+            console.log('onCostTypeChange 被调用');
             const costType = select.value;
             loadCostItems(costType, index);
             updateItemTotalCost(index);
-        };
+        }
         
-        window.onCostItemChange = function(select, index) {
+        // 同时在window对象上注册，确保兼容性
+        window.onCostTypeChange = onCostTypeChange;
+        
+        // 确保所有函数都在全局作用域中定义
+        function onCostItemChange(select, index) {
+            console.log('onCostItemChange 被调用');
             updateItemTotalCost(index);
-        };
+        }
         
-        window.onCategoryChange = function(select, index) {
+        function onCategoryChange(select, index) {
+            console.log('onCategoryChange 被调用');
             const category = select.value;
             const container = document.getElementById('referenced-costs-container');
             const item = container.children[index];
@@ -29593,7 +29601,7 @@ ${shopsMap[link.shopId]}
             itemSelect.innerHTML = '<option value="">选择项目</option>';
             
             // 根据选择的类目过滤项目
-            const costItems = costRecords[costType] || [];
+            const costItems = window.costRecords[costType] || [];
             const filteredItems = category ? costItems.filter(item => item.category === category) : costItems;
             
             filteredItems.forEach(costItem => {
@@ -29605,34 +29613,43 @@ ${shopsMap[link.shopId]}
             
             // 更新总成本
             updateItemTotalCost(index);
-        };
+        }
         
-        window.onQuantityChange = function(input, index) {
+        function onQuantityChange(input, index) {
+            console.log('onQuantityChange 被调用');
             updateItemTotalCost(index);
-        };
+        }
         
-        window.removeReferencedCostItem = function(index) {
+        function removeReferencedCostItem(index) {
+            console.log('removeReferencedCostItem 被调用');
             const container = document.getElementById('referenced-costs-container');
             container.children[index].remove();
             
             // 重新索引剩余项目
             for (let i = 0; i < container.children.length; i++) {
                 container.children[i].setAttribute('data-index', i);
-                const inputs = container.children[i].querySelectorAll('select, input');
-                inputs.forEach(input => {
-                    const onchange = input.getAttribute('onchange');
-                    if (onchange) {
-                        input.setAttribute('onchange', onchange.replace(/\d+/, i));
-                    }
-                    const onclick = input.getAttribute('onclick');
-                    if (onclick) {
-                        input.setAttribute('onclick', onclick.replace(/\d+/, i));
-                    }
-                });
+                const typeSelect = container.children[i].querySelector('.cost-type-select');
+                const categorySelect = container.children[i].querySelector('.category-select');
+                const itemSelect = container.children[i].querySelector('.cost-item-select');
+                const quantityInput = container.children[i].querySelector('.quantity-input');
+                const removeButton = container.children[i].querySelector('button');
+                
+                if (typeSelect) typeSelect.setAttribute('onchange', `onCostTypeChange(this, ${i})`);
+                if (categorySelect) categorySelect.setAttribute('onchange', `onCategoryChange(this, ${i})`);
+                if (itemSelect) itemSelect.setAttribute('onchange', `onCostItemChange(this, ${i})`);
+                if (quantityInput) quantityInput.setAttribute('onchange', `onQuantityChange(this, ${i})`);
+                if (removeButton) removeButton.setAttribute('onclick', `removeReferencedCostItem(${i})`);
             }
             
+            // 更新总成本预览
             updateTotalCostPreview();
-        };
+        }
+        
+        // 同时在window对象上注册所有函数，确保兼容性
+        window.onCostItemChange = onCostItemChange;
+        window.onCategoryChange = onCategoryChange;
+        window.onQuantityChange = onQuantityChange;
+        window.removeReferencedCostItem = removeReferencedCostItem;
         
         // 显示提示框
         function showToast(title, message, type = 'success') {
