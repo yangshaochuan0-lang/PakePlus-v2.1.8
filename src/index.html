@@ -129,6 +129,457 @@
         }
     </script>
     
+    <script>
+    // 产品图片上传相关功能
+    let currentProductImageFile = null;
+    let currentProductImageBase64 = null;
+
+    // 打开产品图片上传模态框
+    function openProductImageModal(productId) {
+        document.getElementById('current-product-id').value = productId;
+        document.getElementById('product-image-modal').classList.remove('hidden');
+        
+        // 重置模态框状态
+        resetProductImageModal();
+        
+        // 检查是否已有图片
+        const existingImage = getProductImage(productId);
+        if (existingImage) {
+            showProductImagePreview(existingImage);
+        }
+    }
+
+    // 关闭产品图片上传模态框
+    function closeProductImageModal() {
+        document.getElementById('product-image-modal').classList.add('hidden');
+        resetProductImageModal();
+    }
+
+    // 重置产品图片上传模态框
+    function resetProductImageModal() {
+        document.getElementById('product-image-input').value = '';
+        document.getElementById('product-image-upload-area').classList.remove('hidden');
+        document.getElementById('product-image-preview-container').classList.add('hidden');
+        currentProductImageFile = null;
+        currentProductImageBase64 = null;
+    }
+
+    // 显示产品图片预览
+    function showProductImagePreview(imageSrc) {
+        const preview = document.getElementById('product-image-preview');
+        preview.src = imageSrc;
+        document.getElementById('product-image-upload-area').classList.add('hidden');
+        document.getElementById('product-image-preview-container').classList.remove('hidden');
+    }
+
+    // 获取产品图片
+    function getProductImage(productId) {
+        const productImages = JSON.parse(localStorage.getItem('productImages') || '{}');
+        return productImages[productId] || null;
+    }
+
+    // 保存产品图片
+    function saveProductImage() {
+        const productId = document.getElementById('current-product-id').value;
+        if (!productId) return;
+
+        if (currentProductImageBase64) {
+            try {
+                // 保存到本地存储
+                const productImages = JSON.parse(localStorage.getItem('productImages') || '{}');
+                productImages[productId] = currentProductImageBase64;
+                localStorage.setItem('productImages', JSON.stringify(productImages));
+                console.log('Image saved for product:', productId);
+                
+                // 更新图标显示
+                updateProductIconWithImage(productId, currentProductImageBase64);
+                
+                // 显示成功提示
+                showToast('图片上传成功', 'success');
+            } catch (error) {
+                console.error('Error saving product image:', error);
+                showToast('图片保存失败，请重试', 'error');
+            }
+        }
+        
+        // 关闭模态框
+        closeProductImageModal();
+    }
+
+    // 更新产品图标为图片
+    function updateProductIconWithImage(productId, imageUrl) {
+        const iconElement = document.getElementById(`product-image-icon-${productId}`);
+        if (iconElement) {
+            console.log('Updating icon for product:', productId);
+            
+            // 移除原有样式和内容
+            iconElement.className = 'w-10 h-10 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden rounded-lg';
+            iconElement.style.padding = '0';
+            iconElement.innerHTML = '';
+            
+            // 添加图片
+            const img = document.createElement('img');
+            img.src = imageUrl;
+            img.className = 'w-full h-full object-cover';
+            img.alt = '产品图片';
+            img.loading = 'lazy'; // 使用懒加载
+            
+            // 添加图片加载失败处理
+            img.onerror = function() {
+                console.error('Failed to load image for product:', productId);
+                // 如果图片加载失败，显示默认图标
+                restoreProductOriginalIcon(productId);
+            };
+            
+            // 添加图片加载成功处理
+            img.onload = function() {
+                console.log('Image loaded successfully for product:', productId);
+            };
+            
+            // 添加鼠标悬停放大预览效果
+            img.onmouseover = function(event) {
+                // 防止重复创建预览元素
+                if (img.previewElement) return;
+                
+                // 获取图标元素的位置和尺寸
+                const iconRect = iconElement.getBoundingClientRect();
+                
+                // 创建放大预览元素
+                const previewElement = document.createElement('div');
+                previewElement.className = 'absolute z-50 bg-white p-2 rounded-lg shadow-lg border border-gray-200';
+                
+                // 计算固定位置：在图标下方居中
+                const previewWidth = 300; // 增大预览框宽度
+                const previewHeight = 300; // 增大预览框高度
+                const leftPos = iconRect.left + (iconRect.width / 2) - (previewWidth / 2); // 计算居中位置
+                const topPos = iconRect.bottom + 10; // 图标下方10px
+                
+                previewElement.style.left = `${leftPos}px`;
+                previewElement.style.top = `${topPos}px`;
+                previewElement.style.width = `${previewWidth}px`;
+                previewElement.style.height = `${previewHeight}px`;
+                previewElement.style.position = 'fixed';
+                previewElement.style.pointerEvents = 'none'; // 防止影响鼠标事件
+                previewElement.style.transition = 'opacity 0.2s ease-in-out'; // 添加淡入效果
+                previewElement.style.opacity = '0'; // 初始透明
+                
+                // 确保预览框在可视区域内
+                const previewRect = {
+                    width: previewWidth,
+                    height: previewHeight
+                };
+                
+                // 检查并调整水平位置
+                if (leftPos < 10) {
+                    previewElement.style.left = '10px';
+                } else if (leftPos + previewRect.width > window.innerWidth - 10) {
+                    previewElement.style.left = `${window.innerWidth - previewRect.width - 10}px`;
+                }
+                
+                // 检查并调整垂直位置
+                if (topPos + previewRect.height > window.innerHeight - 10) {
+                    previewElement.style.top = `${iconRect.top - previewRect.height - 10}px`;
+                }
+                
+                // 创建预览图片
+                const previewImg = document.createElement('img');
+                previewImg.src = imageUrl;
+                previewImg.className = 'w-full h-full object-contain';
+                previewImg.alt = '产品图片预览';
+                
+                // 添加到预览元素
+                previewElement.appendChild(previewImg);
+                
+                // 添加到文档
+                document.body.appendChild(previewElement);
+                
+                // 淡入效果
+                setTimeout(() => {
+                    previewElement.style.opacity = '1';
+                }, 50);
+                
+                // 存储预览元素引用
+                img.previewElement = previewElement;
+            };
+            
+            // 移除鼠标移动时更新位置的代码，保持预览框固定
+            img.onmousemove = function(event) {
+                // 不再更新位置，保持预览框固定
+            };
+            
+            // 鼠标离开时移除预览
+            img.onmouseout = function() {
+                if (img.previewElement && document.body.contains(img.previewElement)) {
+                    document.body.removeChild(img.previewElement);
+                    img.previewElement = null;
+                }
+            };
+            
+            iconElement.appendChild(img);
+            
+            // 确保点击事件仍然有效
+            iconElement.onclick = function() {
+                openProductImageModal(productId);
+            };
+        }
+    }
+
+    // 删除产品图片
+    function deleteProductImage() {
+        const productId = document.getElementById('current-product-id').value;
+        if (!productId) return;
+        
+        // 从本地存储中删除
+        const productImages = JSON.parse(localStorage.getItem('productImages') || '{}');
+        delete productImages[productId];
+        localStorage.setItem('productImages', JSON.stringify(productImages));
+        
+        // 重置模态框
+        resetProductImageModal();
+        
+        // 恢复原始图标
+        restoreProductOriginalIcon(productId);
+        
+        // 显示成功提示
+        showToast('图片已删除', 'success');
+    }
+
+    // 恢复产品原始图标
+    function restoreProductOriginalIcon(productId) {
+        const iconElement = document.getElementById(`product-image-icon-${productId}`);
+        if (iconElement) {
+            // 重置元素样式，确保移除之前图片相关的样式
+            iconElement.className = 'w-10 h-10 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity overflow-hidden rounded-lg flex items-center justify-center bg-gray-100';
+            iconElement.style.padding = '';
+            
+            // 获取产品类型以确定正确的图标
+            let icon = 'fa-puzzle-piece'; // 默认图标
+            
+            // 这里需要根据实际数据结构获取产品类型
+            // 假设我们有一个全局变量或函数可以获取产品信息
+            const product = getProductById(productId);
+            if (product && product.type) {
+                switch(product.type) {
+                    case 'device':
+                        icon = 'fa-mobile';
+                        break;
+                    case 'part':
+                        icon = 'fa-cube';
+                        break;
+                    case 'platform':
+                        icon = 'fa-handshake-o';
+                        break;
+                    case 'accessory':
+                        icon = 'fa-puzzle-piece';
+                        break;
+                    default:
+                        icon = 'fa-puzzle-piece';
+                }
+            }
+            
+            // 清空并恢复原始图标
+            iconElement.innerHTML = `<i class="fa ${icon} text-xl text-gray-500"></i>`;
+            
+            // 确保点击事件仍然有效
+            iconElement.onclick = function() {
+                openProductImageModal(productId);
+            };
+        }
+    }
+
+    // 获取产品信息（需要根据实际数据结构实现）
+    function getProductById(productId) {
+        // 这里应该根据实际的数据结构来实现
+        // 假设我们有一个全局变量products包含所有产品信息
+        if (typeof products !== 'undefined' && Array.isArray(products)) {
+            return products.find(p => p.id === productId) || null;
+        }
+        return null;
+    }
+
+    // 初始化产品图片相关事件
+    document.addEventListener('DOMContentLoaded', function() {
+        const uploadArea = document.getElementById('product-image-upload-area');
+        const fileInput = document.getElementById('product-image-input');
+        const deleteBtn = document.getElementById('delete-product-image-btn');
+        
+        if (uploadArea && fileInput) {
+            // 点击上传区域触发文件选择
+            uploadArea.addEventListener('click', function() {
+                fileInput.click();
+            });
+            
+            // 文件选择变化事件
+            fileInput.addEventListener('change', function(event) {
+                handleFileSelect(event);
+            });
+            
+            // 拖拽上传功能
+            uploadArea.addEventListener('dragover', function(event) {
+                event.preventDefault();
+                uploadArea.classList.add('border-primary', 'bg-primary/5');
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.classList.remove('border-primary', 'bg-primary/5');
+            });
+            
+            uploadArea.addEventListener('drop', function(event) {
+                event.preventDefault();
+                uploadArea.classList.remove('border-primary', 'bg-primary/5');
+                
+                if (event.dataTransfer.files.length > 0) {
+                    handleFileSelect({ target: { files: event.dataTransfer.files } });
+                }
+            });
+        }
+        
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', deleteProductImage);
+        }
+        
+        // 初始化已保存的产品图片
+        initProductImages();
+    });
+    
+    // 页面加载完成后再次尝试初始化产品图片
+    window.addEventListener('load', function() {
+        // 延迟一点执行，确保DOM完全加载
+        setTimeout(initProductImages, 300);
+    });
+    
+    // 监听页面可见性变化，确保图片正确显示
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            setTimeout(initProductImages, 100);
+        }
+    });
+
+    // 处理文件选择
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // 检查文件类型
+        if (!file.type.match('image.*')) {
+            showToast('请选择图片文件', 'error');
+            return;
+        }
+        
+        // 检查文件大小（3MB限制）
+        if (file.size > 3 * 1024 * 1024) {
+            showToast('图片大小不能超过3MB', 'error');
+            return;
+        }
+        
+        // 创建图片对象来检查尺寸
+        const img = new Image();
+        img.onload = function() {
+            // 检查图片尺寸（最大1500x1500像素）
+            if (img.width > 1500 || img.height > 1500) {
+                showToast('图片尺寸不能超过1500x1500像素', 'error');
+                return;
+            }
+            
+            // 验证通过，读取文件为Base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64String = e.target.result;
+                
+                // 压缩图片（如果需要）
+                compressImage(base64String, function(compressedBase64) {
+                    currentProductImageFile = file;
+                    currentProductImageBase64 = compressedBase64;
+                    showProductImagePreview(compressedBase64);
+                });
+            };
+            
+            reader.onerror = function() {
+                showToast('图片读取失败，请重试', 'error');
+            };
+            
+            reader.readAsDataURL(file);
+        };
+        
+        img.onerror = function() {
+            showToast('图片加载失败，请重试', 'error');
+        };
+        
+        img.src = URL.createObjectURL(file);
+    }
+
+    // 压缩图片函数
+    function compressImage(base64String, callback) {
+        const img = new Image();
+        img.onload = function() {
+            // 设置压缩后的最大宽度和高度
+            const maxWidth = 800;
+            const maxHeight = 800;
+            
+            let width = img.width;
+            let height = img.height;
+            
+            // 计算压缩比例
+            if (width > maxWidth || height > maxHeight) {
+                const ratio = Math.min(maxWidth / width, maxHeight / height);
+                width *= ratio;
+                height *= ratio;
+            }
+            
+            // 创建Canvas进行压缩
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            
+            // 转换为Base64，质量为0.8
+            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+            
+            // 如果压缩后大小仍然超过1MB，进一步压缩
+            if (compressedBase64.length > 1024 * 1024) {
+                const furtherCompressed = canvas.toDataURL('image/jpeg', 0.6);
+                callback(furtherCompressed);
+            } else {
+                callback(compressedBase64);
+            }
+        };
+        
+        img.onerror = function() {
+            // 如果压缩失败，使用原图
+            callback(base64String);
+        };
+        
+        img.src = base64String;
+    }
+
+    // 初始化已保存的产品图片
+    function initProductImages() {
+        // 确保localStorage可用
+        if (typeof Storage === 'undefined') {
+            console.error('localStorage is not supported in this browser');
+            return;
+        }
+        
+        try {
+            const productImages = JSON.parse(localStorage.getItem('productImages') || '{}');
+            console.log('Initializing product images:', Object.keys(productImages).length, 'images found');
+            
+            // 遍历所有保存的图片
+            for (const productId in productImages) {
+                const imageUrl = productImages[productId];
+                if (imageUrl) {
+                    console.log('Loading image for product:', productId);
+                    updateProductIconWithImage(productId, imageUrl);
+                }
+            }
+        } catch (error) {
+            console.error('Error initializing product images:', error);
+        }
+    }
+    </script>
+
     <!-- Custom Styles -->
     <style>
         /* 确保样式优先级 */
@@ -491,6 +942,46 @@
                     <button id="confirm-bulk-delete-btn" class="btn btn-danger" onclick="confirmBulkDeleteTasks()">
                         <i class="fa fa-trash"></i> 确认删除
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Image Upload Modal -->
+    <div id="product-image-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="z-index: 1001;">
+        <div class="bg-white rounded-lg shadow-lg w-full max-w-lg">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">上传产品图片</h3>
+                    <button id="close-product-image-modal" class="text-gray-400 hover:text-gray-600" onclick="closeProductImageModal()">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <input type="hidden" id="current-product-id">
+                    
+                    <div id="product-image-upload-area" class="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-primary transition-colors">
+                        <input type="file" id="product-image-input" accept="image/*" class="hidden">
+                        <i class="fa fa-cloud-upload text-4xl text-gray-400 mb-2"></i>
+                        <p class="text-gray-600 mb-1">点击或拖拽文件到此处上传</p>
+                        <p class="text-xs text-gray-500">支持 JPG, PNG, GIF 格式，最大 3MB，尺寸不超过 1500x1500 像素</p>
+                    </div>
+                    
+                    <div id="product-image-preview-container" class="mt-4 hidden">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">图片预览</h4>
+                        <div class="relative">
+                            <img id="product-image-preview" class="w-full h-auto rounded-lg max-h-60 object-contain">
+                            <button id="delete-product-image-btn" class="absolute top-2 right-2 bg-red-500 text-white rounded-full p-2 hover:bg-red-600 transition-colors">
+                                <i class="fa fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button id="cancel-product-image-btn" class="btn btn-secondary" onclick="closeProductImageModal()">取消</button>
+                    <button id="save-product-image-btn" class="btn btn-primary" onclick="saveProductImage()">保存</button>
                 </div>
             </div>
         </div>
@@ -15916,6 +16407,82 @@ ${shopsMap[link.shopId]}
                                 <input type="datetime-local" id="purchase-date" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" value="">
                             </div>
                             <script>
+                                // 增强版设置采购日期为当前时间的函数
+                                function setPurchaseDateToCurrent() {
+                                    try {
+                                        const now = new Date();
+                                        const year = now.getFullYear();
+                                        const month = String(now.getMonth() + 1).padStart(2, '0');
+                                        const day = String(now.getDate()).padStart(2, '0');
+                                        const hours = String(now.getHours()).padStart(2, '0');
+                                        const minutes = String(now.getMinutes()).padStart(2, '0');
+                                        
+                                        const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
+                                        const dateInput = document.getElementById('purchase-date');
+                                        
+                                        if (dateInput) {
+                                            // 强制清空并重新设置值
+                                            dateInput.value = '';
+                                            // 使用setTimeout确保DOM更新
+                                            setTimeout(() => {
+                                                dateInput.value = dateTimeString;
+                                                // 触发input事件以确保表单验证和其他监听器被调用
+                                                dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                                console.log('采购日期已设置为:', dateTimeString);
+                                            }, 10);
+                                        }
+                                    } catch (error) {
+                                        console.error('设置采购日期时出错:', error);
+                                    }
+                                }
+                                
+                                // 立即执行一次以确保初始值正确
+                                setPurchaseDateToCurrent();
+                                
+                                // 页面加载完成后再次设置
+                                document.addEventListener('DOMContentLoaded', function() {
+                                    setPurchaseDateToCurrent();
+                                    
+                                    // 监听页面可见性变化，当页面重新获得焦点时更新时间
+                                    document.addEventListener('visibilitychange', function() {
+                                        if (!document.hidden) {
+                                            setPurchaseDateToCurrent();
+                                        }
+                                    });
+                                    
+                                    // 监听窗口焦点事件
+                                    window.addEventListener('focus', setPurchaseDateToCurrent);
+                                    
+                                    // 监听采购管理标签页点击事件
+                                    document.addEventListener('click', function(event) {
+                                        // 检查是否点击了采购管理相关的标签
+                                        if (event.target.closest && (
+                                            event.target.closest('[data-tab="purchase-management"]') ||
+                                            event.target.closest('#purchase-management') ||
+                                            event.target.closest('[data-purchase-tab="purchase-registration"]')
+                                        )) {
+                                            setTimeout(setPurchaseDateToCurrent, 50);
+                                        }
+                                    });
+                                });
+                                
+                                // 监听表单提交事件
+                                document.addEventListener('submit', function(event) {
+                                    if (event.target && event.target.id === 'purchase-form') {
+                                        // 表单提交后延迟更新日期
+                                        setTimeout(setPurchaseDateToCurrent, 100);
+                                    }
+                                });
+                                
+                                // 定期检查并更新时间（每30秒）
+                                setInterval(function() {
+                                    const dateInput = document.getElementById('purchase-date');
+                                    if (dateInput && dateInput.form && !dateInput.form.classList.contains('submitting')) {
+                                        setPurchaseDateToCurrent();
+                                    }
+                                }, 30000);
+                            </script>
+                            <script>
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -26018,7 +26585,7 @@ ${shopsMap[link.shopId]}
                         <div class="p-5">
                             <div class="flex items-start justify-between mb-4">
                                 <div class="flex items-center space-x-3 flex-1 min-w-0">
-                                    <div class="${bgColor} ${textColor} p-3 rounded-lg flex-shrink-0">
+                                    <div id="product-image-icon-${item.id}" class="${bgColor} ${textColor} p-3 rounded-lg flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity flex items-center justify-center" style="width: 40px; height: 40px;" onclick="openProductImageModal('${item.id}')">
                                         <i class="fa ${icon} text-xl"></i>
                                     </div>
                                     <div class="flex-1 min-w-0">
@@ -33453,8 +34020,8 @@ ${shopsMap[link.shopId]}
                 purchaseFilteredData = filteredPurchases;
                 purchaseCurrentPage = 1;
             }
-            // 如果没有过滤数据传入，且当前过滤数据为空或未定义，则使用所有采购数据
-            else if (!purchaseFilteredData || purchaseFilteredData.length === 0) {
+            // 否则，总是使用最新的采购数据，确保列表实时更新
+            else {
                 purchaseFilteredData = purchaseData.purchases;
                 purchaseCurrentPage = 1;
             }
@@ -34397,7 +34964,8 @@ ${shopsMap[link.shopId]}
                 totalPrice: totalPrice,
                 note,
                 code: originalPurchase.code, // 保留原始编码，确保永久性
-                detailFormId: originalPurchase.detailFormId // 保留明细表单关联
+                detailFormId: originalPurchase.detailFormId, // 保留明细表单关联
+                detailForm: originalPurchase.detailForm // 保留明细表单数据
             };
             
             console.log('=== 数量更新 ===', '原始数量:', originalPurchase.quantity, '新数量:', quantity);
