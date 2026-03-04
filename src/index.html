@@ -28218,11 +28218,14 @@ ${shopsMap[link.shopId]}
         }
         
         // 查找使用特定成本项目的规格
-        function findRelatedSkus(costType, costId) {
+        function findRelatedSkus(costType, costId, filteredData = null) {
             const relatedSkus = [];
             
+            // 使用筛选后的数据或全部数据
+            const dataToUse = filteredData || productData;
+            
             // 遍历所有产品的规格
-            Object.values(productData).forEach(product => {
+            Object.values(dataToUse).forEach(product => {
                 Object.values(product.skus).forEach(sku => {
                     // 查找对应的规格成本
                     const skuCost = skuCosts[sku.code];
