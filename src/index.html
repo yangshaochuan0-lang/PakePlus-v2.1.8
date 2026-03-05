@@ -455,6 +455,90 @@
         }
     });
 
+    // 清除关联店铺筛选
+    function clearLinkShopFilter() {
+        const input = document.getElementById('link-shop-filter-input');
+        const clearBtn = document.getElementById('link-shop-clear-btn');
+        
+        // 清空输入框和当前选中的店铺ID
+        input.value = '';
+        input.removeAttribute('data-selected-value');
+        currentLinkedShopId = null;
+        
+        // 隐藏清除按钮
+        if (clearBtn) {
+            clearBtn.classList.remove('opacity-100');
+            clearBtn.classList.add('opacity-0');
+        }
+        
+        // 触发筛选事件
+        const event = new Event('change');
+        input.dispatchEvent(event);
+        
+        // 更新关联产品列表
+        updateLinkedProducts();
+    }
+
+    // 清除产品筛选
+    function clearPurchaseProductFilter() {
+        const input = document.getElementById('purchase-product-input');
+        const clearBtn = document.getElementById('purchase-product-clear-btn');
+        
+        // 清空输入框
+        input.value = '';
+        input.removeAttribute('data-selected-value');
+        
+        // 隐藏清除按钮
+        if (clearBtn) {
+            clearBtn.classList.remove('opacity-100');
+            clearBtn.classList.add('opacity-0');
+        }
+        
+        // 触发筛选事件
+        const event = new Event('input');
+        input.dispatchEvent(event);
+    }
+
+    // 清除支付记录产品筛选
+    function clearFilterPaymentProductFilter() {
+        const input = document.getElementById('filter-payment-product-input');
+        const clearBtn = document.getElementById('filter-payment-product-clear-btn');
+        
+        // 清空输入框
+        input.value = '';
+        input.removeAttribute('data-selected-value');
+        
+        // 隐藏清除按钮
+        if (clearBtn) {
+            clearBtn.classList.remove('opacity-100');
+            clearBtn.classList.add('opacity-0');
+        }
+        
+        // 触发筛选事件
+        const event = new Event('input');
+        input.dispatchEvent(event);
+    }
+
+    // 清除筛选产品筛选
+    function clearFilterProductFilter() {
+        const input = document.getElementById('filter-product-input');
+        const clearBtn = document.getElementById('filter-product-clear-btn');
+        
+        // 清空输入框
+        input.value = '';
+        input.removeAttribute('data-selected-value');
+        
+        // 隐藏清除按钮
+        if (clearBtn) {
+            clearBtn.classList.remove('opacity-100');
+            clearBtn.classList.add('opacity-0');
+        }
+        
+        // 触发筛选事件
+        const event = new Event('input');
+        input.dispatchEvent(event);
+    }
+
     // 处理文件选择
     function handleFileSelect(event) {
         const file = event.target.files[0];
@@ -1444,12 +1528,9 @@
                 animation: breathing 2s ease-in-out infinite;
                 font-weight: 900 !important;
                 font-size: 14px !important;
-                color: #000000 !important;
-                background-color: #ffeb3b !important;
-                text-shadow: 0 0 2px rgba(0,0,0,0.2);
-                padding: 8px 6px !important;
-                border-radius: 4px !important;
-                border: 2px solid #f59e0b !important;
+                background: none !important;
+                padding: 0 !important;
+                border: none !important;
             }
             .category-editing {
                 animation: breathing 2s ease-in-out infinite;
@@ -1848,12 +1929,23 @@
                     </select>
                 </div>
                 <div class="mb-4">
-                    <label for="edit-link-shop" class="block text-sm font-medium text-gray-700 mb-1">
+                    <label for="edit-link-shop-input" class="block text-sm font-medium text-gray-700 mb-1">
                         店铺归类
                     </label>
-                    <select id="edit-link-shop" class="input-field w-full">
-                        <option value="">选择店铺</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="edit-link-shop-input" placeholder="搜索或选择店铺..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleEditLinkShopDropdown();" oninput="filterEditLinkShopOptions(this.value);" onkeydown="handleEditLinkShopKeydown(event);">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa fa-search text-gray-400"></i>
+                        </div>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <i class="fa fa-chevron-down text-gray-400" id="edit-link-shop-chevron"></i>
+                        </div>
+                        <div id="edit-link-shop-dropdown" class="absolute mt-1 w-full bg-white rounded-md shadow-lg max-h-80 overflow-auto z-10 hidden">
+                            <div id="edit-link-shop-options" class="py-1">
+                                <!-- 店铺选项将通过JavaScript动态添加 -->
+                            </div>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-6">
                     <label for="edit-link-note" class="block text-sm font-medium text-gray-700 mb-1">
@@ -8360,59 +8452,253 @@
             function updateLinkShopFilter() {
                 console.log('=== 开始更新链接管理店铺筛选器 ===');
                 
-                const shopFilter = document.getElementById('link-shop-filter');
-                if (shopFilter) {
-                    const currentValue = shopFilter.value;
-                    console.log('当前筛选器值:', currentValue);
-                    
+                const shopOptionsContainer = document.getElementById('link-shop-options');
+                if (shopOptionsContainer) {
                     // 清空现有选项
-                    shopFilter.innerHTML = '<option value="">所有店铺</option>';
+                    shopOptionsContainer.innerHTML = '';
                     
                     try {
                         // 获取所有店铺数据
                         const shops = JSON.parse(localStorage.getItem('shops')) || [];
                         console.log('从localStorage获取的店铺数据:', shops);
                         
+                        // 添加"所有店铺"选项
+                        const allShopsOption = document.createElement('div');
+                        allShopsOption.className = 'px-4 py-2 hover:bg-blue-50 cursor-pointer';
+                        allShopsOption.textContent = '所有店铺';
+                        allShopsOption.setAttribute('data-value', '');
+                        allShopsOption.onclick = function() {
+                            selectLinkShop(this.getAttribute('data-value'), this.textContent);
+                        };
+                        shopOptionsContainer.appendChild(allShopsOption);
+                        
                         if (shops.length === 0) {
                             console.log('未找到店铺数据，添加提示选项');
-                            const option = document.createElement('option');
-                            option.value = '';
+                            const option = document.createElement('div');
+                            option.className = 'px-4 py-2 text-gray-400 cursor-not-allowed';
                             option.textContent = '暂无店铺数据';
-                            option.disabled = true;
-                            shopFilter.appendChild(option);
+                            shopOptionsContainer.appendChild(option);
                         } else {
                             console.log('找到店铺数量:', shops.length);
                             // 添加店铺选项
                             shops.forEach(shop => {
                                 if (shop && shop.id && shop.name) {
-                                    const option = document.createElement('option');
-                                    option.value = shop.id;
+                                    const option = document.createElement('div');
+                                    option.className = 'px-4 py-2 hover:bg-blue-50 cursor-pointer';
                                     option.textContent = shop.name;
-                                    shopFilter.appendChild(option);
+                                    option.setAttribute('data-value', shop.id);
+                                    option.onclick = function() {
+                                        selectLinkShop(this.getAttribute('data-value'), this.textContent);
+                                    };
+                                    shopOptionsContainer.appendChild(option);
                                     console.log('添加店铺选项:', shop.name, '(', shop.id, ')');
                                 }
                             });
                         }
                         
-                        // 恢复当前选中值
-                        if (currentValue && shopFilter.querySelector(`option[value="${currentValue}"]`)) {
-                            shopFilter.value = currentValue;
-                            console.log('恢复选中值:', currentValue);
-                        }
-                        
+                        console.log('=== 链接管理店铺筛选器更新完成 ===');
                     } catch (error) {
                         console.error('更新店铺筛选器时发生错误:', error);
-                        const option = document.createElement('option');
-                        option.value = '';
+                        const option = document.createElement('div');
+                        option.className = 'px-4 py-2 text-gray-400 cursor-not-allowed';
                         option.textContent = '加载店铺失败';
-                        option.disabled = true;
-                        shopFilter.appendChild(option);
+                        shopOptionsContainer.appendChild(option);
+                    }
+                } else {
+                    console.log('警告: 链接管理店铺选项容器 link-shop-options 未找到');
+                }
+            }
+            
+            // 切换链接管理店铺下拉框
+            function toggleLinkShopDropdown() {
+                const dropdown = document.getElementById('link-shop-dropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('hidden');
+                    // 如果下拉框显示，更新选项
+                    if (!dropdown.classList.contains('hidden')) {
+                        updateLinkShopFilter();
+                    }
+                }
+            }
+            
+            // 筛选链接管理店铺选项
+            function filterLinkShopOptions(value) {
+                const options = document.querySelectorAll('#link-shop-options > div');
+                options.forEach(option => {
+                    const text = option.textContent.toLowerCase();
+                    const filterText = value.toLowerCase();
+                    if (text.includes(filterText)) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 处理链接管理店铺键盘事件
+            function handleLinkShopKeydown(event) {
+                const dropdown = document.getElementById('link-shop-dropdown');
+                const input = document.getElementById('link-shop-filter-input');
+                
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    // 选择第一个可见的选项
+                    const firstVisibleOption = document.querySelector('#link-shop-options > div:not([style*="display: none"]):not(.cursor-not-allowed)');
+                    if (firstVisibleOption) {
+                        const value = firstVisibleOption.getAttribute('data-value');
+                        const text = firstVisibleOption.textContent;
+                        selectLinkShop(value, text);
+                    }
+                } else if (event.key === 'Escape') {
+                    dropdown.classList.add('hidden');
+                }
+            }
+            
+            // 选择链接管理店铺
+            function selectLinkShop(value, text) {
+                const input = document.getElementById('link-shop-filter-input');
+                const dropdown = document.getElementById('link-shop-dropdown');
+                const clearBtn = document.getElementById('link-shop-clear-btn');
+                
+                if (input) {
+                    input.value = text;
+                    // 存储选中的值
+                    input.setAttribute('data-selected-value', value);
+                    dropdown.classList.add('hidden');
+                    
+                    // 显示清除按钮
+                    if (clearBtn) {
+                        clearBtn.classList.remove('opacity-0');
+                        clearBtn.classList.add('opacity-100');
                     }
                     
-                    console.log('=== 链接管理店铺筛选器更新完成 ===');
-                } else {
-                    console.log('警告: 链接管理店铺筛选器 link-shop-filter 未找到');
+                    // 触发筛选事件
+                    const event = new Event('change');
+                    input.dispatchEvent(event);
                 }
+            }
+            
+            // 获取当前选中的链接管理店铺值
+            function getSelectedLinkShopValue() {
+                const input = document.getElementById('link-shop-filter-input');
+                return input ? input.getAttribute('data-selected-value') || '' : '';
+            }
+            
+            // 加载编辑链接模态框的店铺选项
+            function loadEditLinkShopOptions() {
+                const optionsContainer = document.getElementById('edit-link-shop-options');
+                if (!optionsContainer) {
+                    console.log('警告: 编辑链接店铺选项容器 edit-link-shop-options 未找到');
+                    return;
+                }
+                
+                // 清空现有选项
+                optionsContainer.innerHTML = '';
+                
+                // 获取店铺数据
+                const shops = JSON.parse(localStorage.getItem('shops')) || [];
+                
+                if (shops.length === 0) {
+                    // 如果没有店铺数据，显示提示信息
+                    const noDataOption = document.createElement('div');
+                    noDataOption.className = 'px-4 py-2 text-sm text-gray-500 cursor-not-allowed';
+                    noDataOption.textContent = '暂无店铺数据';
+                    optionsContainer.appendChild(noDataOption);
+                    return;
+                }
+                
+                // 添加空选项
+                const emptyOption = document.createElement('div');
+                emptyOption.className = 'px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer';
+                emptyOption.setAttribute('data-value', '');
+                emptyOption.textContent = '清除选择';
+                emptyOption.onclick = function() {
+                    selectEditLinkShop('', '');
+                };
+                optionsContainer.appendChild(emptyOption);
+                
+                // 添加分隔线
+                const divider = document.createElement('div');
+                divider.className = 'border-t border-gray-200 my-1';
+                optionsContainer.appendChild(divider);
+                
+                // 添加店铺选项
+                shops.forEach(shop => {
+                    const option = document.createElement('div');
+                    option.className = 'px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer';
+                    option.setAttribute('data-value', shop.id);
+                    option.textContent = shop.name;
+                    option.onclick = function() {
+                        selectEditLinkShop(shop.id, shop.name);
+                    };
+                    optionsContainer.appendChild(option);
+                });
+                
+                console.log('=== 编辑链接店铺选项加载完成 ===');
+            }
+            
+            // 切换编辑链接模态框的店铺下拉框
+            function toggleEditLinkShopDropdown() {
+                const dropdown = document.getElementById('edit-link-shop-dropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('hidden');
+                    // 如果下拉框显示，更新选项
+                    if (!dropdown.classList.contains('hidden')) {
+                        loadEditLinkShopOptions();
+                    }
+                }
+            }
+            
+            // 筛选编辑链接模态框的店铺选项
+            function filterEditLinkShopOptions(value) {
+                const options = document.querySelectorAll('#edit-link-shop-options > div');
+                options.forEach(option => {
+                    const text = option.textContent.toLowerCase();
+                    const filterText = value.toLowerCase();
+                    if (text.includes(filterText)) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 处理编辑链接模态框的店铺键盘事件
+            function handleEditLinkShopKeydown(event) {
+                const dropdown = document.getElementById('edit-link-shop-dropdown');
+                const input = document.getElementById('edit-link-shop-input');
+                
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    // 选择第一个可见的选项
+                    const firstVisibleOption = document.querySelector('#edit-link-shop-options > div:not([style*="display: none"]):not(.cursor-not-allowed)');
+                    if (firstVisibleOption) {
+                        const value = firstVisibleOption.getAttribute('data-value');
+                        const text = firstVisibleOption.textContent;
+                        selectEditLinkShop(value, text);
+                    }
+                } else if (event.key === 'Escape') {
+                    dropdown.classList.add('hidden');
+                }
+            }
+            
+            // 选择编辑链接模态框的店铺
+            function selectEditLinkShop(value, text) {
+                const input = document.getElementById('edit-link-shop-input');
+                const dropdown = document.getElementById('edit-link-shop-dropdown');
+                
+                if (input) {
+                    input.value = text;
+                    // 存储选中的值
+                    input.setAttribute('data-selected-value', value);
+                    dropdown.classList.add('hidden');
+                }
+            }
+            
+            // 获取当前选中的编辑链接模态框的店铺值
+            function getSelectedEditLinkShopId() {
+                const input = document.getElementById('edit-link-shop-input');
+                return input ? input.getAttribute('data-selected-value') || '' : '';
             }
             
             // 保存定价数据
@@ -8598,6 +8884,16 @@
                 if (typeof skuCosts !== 'undefined') {
                     updateLinkedCosts();
                 }
+                
+                // 点击页面其他地方关闭下拉框
+                document.addEventListener('click', function(event) {
+                    const dropdown = document.getElementById('link-shop-dropdown');
+                    const input = document.getElementById('link-shop-filter-input');
+                    
+                    if (dropdown && input && !dropdown.contains(event.target) && !input.contains(event.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
                 
                 console.log('=== 定价工具初始化完成 ===');
             }
@@ -11029,18 +11325,15 @@ ${shopsMap[link.shopId]}
                 document.getElementById('add-link-category').value = 'other';
                 document.getElementById('add-link-note').value = '';
                 
-                // 加载店铺列表到店铺归类选择器
-                const shopSelect = document.getElementById('add-link-shop');
-                shopSelect.innerHTML = '<option value="">选择店铺</option>';
+                // 重置店铺选择器
+                const shopInput = document.getElementById('add-link-shop-input');
+                if (shopInput) {
+                    shopInput.value = '';
+                    shopInput.dataset.selectedValue = '';
+                }
                 
-                // 获取店铺数据
-                const shops = JSON.parse(localStorage.getItem('shops')) || [];
-                shops.forEach(shop => {
-                    const option = document.createElement('option');
-                    option.value = shop.id;
-                    option.textContent = shop.name;
-                    shopSelect.appendChild(option);
-                });
+                // 加载店铺列表到店铺归类选择器
+                loadShopsToAddLinkShopSelector();
                 
                 document.getElementById('add-link-modal').classList.remove('hidden');
             }
@@ -11050,11 +11343,120 @@ ${shopsMap[link.shopId]}
                 document.getElementById('add-link-modal').classList.add('hidden');
             }
             
+            // 加载店铺列表到店铺归类选择器
+            function loadShopsToAddLinkShopSelector() {
+                const optionsContainer = document.getElementById('add-link-shop-options');
+                if (!optionsContainer) return;
+                
+                // 清空现有选项
+                optionsContainer.innerHTML = '';
+                
+                // 添加默认选项
+                const defaultOption = document.createElement('li');
+                defaultOption.className = 'px-3 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer';
+                defaultOption.textContent = '选择店铺';
+                defaultOption.dataset.value = '';
+                defaultOption.onclick = function() {
+                    selectAddLinkShop(this.dataset.value, this.textContent);
+                };
+                optionsContainer.appendChild(defaultOption);
+                
+                // 添加分隔线
+                const divider = document.createElement('li');
+                divider.className = 'border-t border-gray-200 my-1';
+                optionsContainer.appendChild(divider);
+                
+                // 获取店铺数据
+                const shops = JSON.parse(localStorage.getItem('shops')) || [];
+                
+                // 添加店铺选项
+                shops.forEach(shop => {
+                    const option = document.createElement('li');
+                    option.className = 'px-3 py-2 text-gray-700 hover:bg-gray-100 cursor-pointer';
+                    option.textContent = shop.name;
+                    option.dataset.value = shop.id;
+                    option.onclick = function() {
+                        selectAddLinkShop(this.dataset.value, this.textContent);
+                    };
+                    optionsContainer.appendChild(option);
+                });
+            }
+            
+            // 切换新增链接模态框中的店铺选择器下拉框
+            function toggleAddLinkShopDropdown() {
+                const dropdown = document.getElementById('add-link-shop-dropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('hidden');
+                }
+            }
+            
+            // 过滤新增链接模态框中的店铺选项
+            function filterAddLinkShopOptions(filter) {
+                const options = document.querySelectorAll('#add-link-shop-options li');
+                if (!options.length) return;
+                
+                const filterLower = filter.toLowerCase();
+                
+                options.forEach(option => {
+                    // 跳过分隔线
+                    if (option.classList.contains('border-t')) {
+                        option.style.display = '';
+                        return;
+                    }
+                    
+                    const text = option.textContent.toLowerCase();
+                    if (text.includes(filterLower)) {
+                        option.style.display = '';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            }
+            
+            // 处理新增链接模态框中的店铺选择器键盘事件
+            function handleAddLinkShopKeydown(event) {
+                const dropdown = document.getElementById('add-link-shop-dropdown');
+                if (!dropdown) return;
+                
+                // 按下Enter键时，尝试选择第一个可见的选项
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    const visibleOptions = Array.from(document.querySelectorAll('#add-link-shop-options li')).filter(
+                        option => !option.classList.contains('border-t') && option.style.display !== 'none'
+                    );
+                    
+                    if (visibleOptions.length > 0) {
+                        const firstOption = visibleOptions[0];
+                        selectAddLinkShop(firstOption.dataset.value, firstOption.textContent);
+                    }
+                }
+                // 按下Escape键时，关闭下拉框
+                else if (event.key === 'Escape') {
+                    dropdown.classList.add('hidden');
+                }
+            }
+            
+            // 选择新增链接模态框中的店铺
+            function selectAddLinkShop(value, text) {
+                const input = document.getElementById('add-link-shop-input');
+                const dropdown = document.getElementById('add-link-shop-dropdown');
+                
+                if (input) {
+                    input.value = text;
+                    input.dataset.selectedValue = value;
+                }
+                
+                if (dropdown) {
+                    dropdown.classList.add('hidden');
+                }
+            }
+            
             // 保存新增链接
             function saveAddLink() {
                 const name = document.getElementById('add-link-name').value.trim();
                 const category = document.getElementById('add-link-category').value;
-                const shop = document.getElementById('add-link-shop').value;
+                const shopInput = document.getElementById('add-link-shop-input');
+                const shop = shopInput ? shopInput.dataset.selectedValue : '';
                 const note = document.getElementById('add-link-note').value.trim();
                 
                 if (!name) {
@@ -11125,21 +11527,17 @@ ${shopsMap[link.shopId]}
                 document.getElementById('edit-link-note').value = link.note || '';
                 
                 // 加载店铺列表到店铺归类筛选器
-                const shopSelect = document.getElementById('edit-link-shop');
-                shopSelect.innerHTML = '<option value="">选择店铺</option>';
-                
-                // 获取店铺数据
-                const shops = JSON.parse(localStorage.getItem('shops')) || [];
-                shops.forEach(shop => {
-                    const option = document.createElement('option');
-                    option.value = shop.id;
-                    option.textContent = shop.name;
-                    shopSelect.appendChild(option);
-                });
+                loadEditLinkShopOptions();
                 
                 // 设置当前选中的店铺
                 if (link.shop) {
-                    shopSelect.value = link.shop;
+                    const shops = JSON.parse(localStorage.getItem('shops')) || [];
+                    const selectedShop = shops.find(shop => shop.id === link.shop);
+                    if (selectedShop) {
+                        document.getElementById('edit-link-shop-input').value = selectedShop.name;
+                    }
+                } else {
+                    document.getElementById('edit-link-shop-input').value = '';
                 }
                 
                 // 显示模态框 - 确保正确设置显示样式
@@ -11169,7 +11567,7 @@ ${shopsMap[link.shopId]}
                     const index = parseInt(document.getElementById('edit-link-index').value);
                     const name = document.getElementById('edit-link-name').value.trim();
                     const category = document.getElementById('edit-link-category').value;
-                    const shopId = document.getElementById('edit-link-shop').value;
+                    const shopId = getSelectedEditLinkShopId();
                     const note = document.getElementById('edit-link-note').value.trim();
                     
                     if (!name) {
@@ -12912,7 +13310,7 @@ ${shopsMap[link.shopId]}
                 function filterLinks() {
                     const searchTerm = document.getElementById('link-search')?.value.toLowerCase() || '';
                     const selectedCategory = document.getElementById('link-category-filter')?.value || '';
-                    const selectedShopId = document.getElementById('link-shop-filter')?.value || '';
+                    const selectedShopId = getSelectedLinkShopValue();
                     const links = document.querySelectorAll('#links-container > div');
                     
                     console.log('=== 执行链接筛选 ===');
@@ -12934,7 +13332,7 @@ ${shopsMap[link.shopId]}
                         const matchesCategory = selectedCategory === '' || linkData.category === selectedCategory;
                         
                         // 店铺筛选
-                        const matchesShop = selectedShopId === '' || linkData.shopId === selectedShopId;
+                        const matchesShop = selectedShopId === '' || linkData.shop === selectedShopId;
                         
                         // 综合筛选条件
                         const shouldShow = matchesSearch && matchesCategory && matchesShop;
@@ -12976,9 +13374,9 @@ ${shopsMap[link.shopId]}
                 }
                 
                 // 店铺筛选
-                const shopFilter = document.getElementById('link-shop-filter');
-                if (shopFilter) {
-                    shopFilter.addEventListener('change', filterLinks);
+                const shopFilterInput = document.getElementById('link-shop-filter-input');
+                if (shopFilterInput) {
+                    shopFilterInput.addEventListener('change', filterLinks);
                 }
 
 
@@ -13539,14 +13937,34 @@ ${shopsMap[link.shopId]}
                             <!-- 新增筛选控件 -->
                             <div class="space-y-4">
                                 <div>
-                                    <label for="calculation-shop-filter" class="block text-sm font-medium text-gray-700 mb-1">店铺筛选</label>
+                                    <label for="calculation-platform-filter" class="block text-sm font-medium text-gray-700 mb-1">平台筛选</label>
                                     <div class="relative">
-                                    <select id="calculation-shop-filter" class="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer">
-                                        <option value="">全部店铺</option>
-                                        <option value="uncategorized">未分类</option>
+                                    <select id="calculation-platform-filter" class="w-full px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer">
+                                        <option value="">全部平台</option>
                                     </select>
                                     <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                                 </div>
+                                </div>
+                                
+                                <div>
+                                    <label for="calculation-shop-input" class="block text-sm font-medium text-gray-700 mb-1">店铺筛选</label>
+                                    <div class="relative">
+                                        <div class="relative">
+                                            <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                            <input type="text" id="calculation-shop-input" placeholder="搜索或选择店铺..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleShopDropdown();" oninput="filterShopOptions(this.value); updateClearButtonVisibility();" onkeydown="handleShopKeydown(event);">
+                                            <button type="button" id="clear-shop-input-btn" class="absolute right-10 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors duration-200 hidden" onclick="clearShopInput(); event.stopPropagation();">
+                                                <i class="fa fa-times-circle"></i>
+                                            </button>
+                                            <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                        </div>
+                                        <div id="shop-dropdown" class="absolute left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-10 hidden max-h-96 overflow-y-auto">
+                                            <div class="py-1">
+                                                <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer shop-option" data-value="">全部店铺</div>
+                                                <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer shop-option" data-value="uncategorized">未分类</div>
+                                                <!-- 店铺选项将通过JavaScript动态添加 -->
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                                 
                                 <div>
@@ -14344,11 +14762,19 @@ ${shopsMap[link.shopId]}
                             </div>
                             <div class="flex items-center space-x-2 flex-wrap gap-2">
                                 <div class="relative">
-                                    <select id="link-shop-filter" class="w-40 px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer">
-                                        <option value="">所有店铺</option>
-                                        <!-- 店铺选项将通过JavaScript动态生成 -->
-                                    </select>
-                                    <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                    <div class="relative">
+                                        <input type="text" id="link-shop-filter-input" placeholder="搜索或选择店铺..." class="w-60 pl-10 pr-14 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleLinkShopDropdown();" oninput="filterLinkShopOptions(this.value);" onkeydown="handleLinkShopKeydown(event);">
+                                        <button type="button" id="link-shop-clear-btn" class="absolute inset-y-0 right-8 px-2 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 opacity-0 z-10" onclick="event.stopPropagation(); clearLinkShopFilter();">
+                                            <i class="fa fa-times-circle"></i>
+                                        </button>
+                                        <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                        <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
+                                    </div>
+                                    <div id="link-shop-dropdown" class="absolute left-0 right-0 mt-1 max-h-80 overflow-y-auto bg-white border-2 border-gray-200 rounded-lg shadow-lg z-20 hidden">
+                                        <div id="link-shop-options" class="py-1">
+                                            <!-- 店铺选项将通过JavaScript动态生成 -->
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="relative">
                                     <select id="link-category-filter" class="w-40 px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer">
@@ -14525,11 +14951,21 @@ ${shopsMap[link.shopId]}
                     <div class="flex justify-between items-center mb-4">
                         <h2 class="text-lg font-semibold text-gray-800" style="font-size: 20px;">店铺数据统计</h2>
                         <div class="relative">
-                        <select id="shop-filter" class="w-36 px-4 py-2 pr-8 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 appearance-none bg-white text-gray-700 cursor-pointer text-sm">
-                            <option value="">全部店铺</option>
-                        </select>
-                        <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
-                    </div>
+                            <div class="relative">
+                                <input type="text" id="dashboard-shop-filter-input" placeholder="搜索或选择店铺..." class="w-64 pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer text-sm" onclick="event.stopPropagation(); toggleDashboardShopDropdown();" oninput="filterDashboardShopOptions(this.value); updateDashboardClearButtonVisibility();" onkeydown="handleDashboardShopKeydown(event);" data-selected-value="">
+                                <i class="fa fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                                <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none text-xs"></i>
+                                <button id="dashboard-clear-shop-btn" class="absolute right-8 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 hidden" onclick="event.stopPropagation(); clearDashboardShopSelection();">
+                                    <i class="fa fa-times-circle"></i>
+                                </button>
+                            </div>
+                            <div id="dashboard-shop-dropdown" class="hidden absolute right-0 mt-1 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-20 max-h-80 overflow-y-auto">
+                                <div class="py-1">
+                                    <div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" data-value="" onclick="selectDashboardShopOption('')">全部店铺</div>
+                                    <!-- 店铺选项将通过JavaScript动态添加 -->
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div id="shop-stats-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <!-- Shop stats cards will be added here -->
@@ -14690,10 +15126,13 @@ ${shopsMap[link.shopId]}
                                             <i class="fa fa-chevron-down text-gray-400"></i>
                                         </div>
                                         <input type="text" id="purchase-product-input" placeholder="搜索或选择产品..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleProductDropdown();" oninput="filterProductOptions(this.value);" onkeydown="handleProductKeydown(event);">
+                                        <button type="button" id="purchase-product-clear-btn" class="absolute inset-y-0 right-8 px-2 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 opacity-0 z-10" onclick="event.stopPropagation(); clearPurchaseProductFilter();">
+                                            <i class="fa fa-times-circle"></i>
+                                        </button>
                                     </div>
                                     <!-- 下拉框容器 - 悬浮定位 -->
                                     <div class="absolute top-full left-0 right-0 z-50 mt-1" style="z-index: 9999; position: absolute;">
-                                        <select id="purchase-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; opacity: 1; transform: translateY(0); z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; document.getElementById('purchase-product-input').value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
+                                        <select id="purchase-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; opacity: 1; transform: translateY(0); z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; const input = document.getElementById('purchase-product-input'); input.value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; if (input.value.trim() !== '') { const clearBtn = document.getElementById('purchase-product-clear-btn'); if (clearBtn) { clearBtn.classList.remove('opacity-0'); clearBtn.classList.add('opacity-100'); } } this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
                                             <option value="" class="editing-breathing-bg">请选择产品</option>
                                         </select>
                                     </div>
@@ -17649,11 +18088,14 @@ ${shopsMap[link.shopId]}
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <i class="fa fa-chevron-down text-gray-400"></i>
                                     </div>
+                                    <button type="button" id="filter-payment-product-clear-btn" class="absolute inset-y-0 right-8 px-2 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 opacity-0 z-10" onclick="event.stopPropagation(); clearFilterPaymentProductFilter();">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
                                     <input type="text" id="filter-payment-product-input" placeholder="搜索或选择产品..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleFilterPaymentProductDropdown();" oninput="filterFilterPaymentProductOptions(this.value);" onkeydown="handleFilterPaymentProductKeydown(event);">
                                 </div>
                                 <!-- 下拉框容器 - 悬浮定位 -->
                                 <div class="absolute top-full left-0 right-0 z-50 mt-1" style="position: absolute; z-index: 9999; width: 100%;">
-                                    <select id="filter-payment-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; position: relative; z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; document.getElementById('filter-payment-product-input').value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
+                                    <select id="filter-payment-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; position: relative; z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; const input = document.getElementById('filter-payment-product-input'); input.value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; if (input.value.trim() !== '') { const clearBtn = document.getElementById('filter-payment-product-clear-btn'); if (clearBtn) { clearBtn.classList.remove('opacity-0'); clearBtn.classList.add('opacity-100'); } } this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
                                         <option value="" class="editing-breathing-bg">全部产品</option>
                                     </select>
                                 </div>
@@ -19589,11 +20031,14 @@ ${shopsMap[link.shopId]}
                                     <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
                                         <i class="fa fa-chevron-down text-gray-400"></i>
                                     </div>
+                                    <button type="button" id="filter-product-clear-btn" class="absolute inset-y-0 right-8 px-2 flex items-center text-gray-400 hover:text-gray-600 transition-colors duration-200 opacity-0 z-10" onclick="event.stopPropagation(); clearFilterProductFilter();">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
                                     <input type="text" id="filter-product-input" placeholder="搜索或选择产品..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleFilterProductDropdown();" oninput="filterFilterProductOptions(this.value);" onkeydown="handleFilterProductKeydown(event);">
                                 </div>
                                 <!-- 下拉框容器 - 悬浮定位 -->
                                 <div class="absolute top-full left-0 right-0 z-50 mt-1" style="z-index: 9999; position: absolute;">
-                                    <select id="filter-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; opacity: 1; transform: translateY(0); z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; document.getElementById('filter-product-input').value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
+                                    <select id="filter-product" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-lg focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-300 appearance-none bg-white text-gray-700 cursor-pointer hidden" style="max-height: 500px; overflow-y: auto; opacity: 1; transform: translateY(0); z-index: 9999;" onchange="const selectedValue = this.options[this.selectedIndex].value; const input = document.getElementById('filter-product-input'); input.value = selectedValue === '' ? '' : this.options[this.selectedIndex].textContent; if (input.value.trim() !== '') { const clearBtn = document.getElementById('filter-product-clear-btn'); if (clearBtn) { clearBtn.classList.remove('opacity-0'); clearBtn.classList.add('opacity-100'); } } this.classList.add('hidden'); this.size = 0;" onclick="event.stopPropagation();">
                                         <option value="" class="editing-breathing-bg">全部产品</option>
                                     </select>
                                 </div>
@@ -19629,6 +20074,7 @@ ${shopsMap[link.shopId]}
                                     <option value="part-received">部分已收到</option>
                                     <option value="none-received">全部未收到</option>
                                     <option value="has-detail">有明细表单</option>
+                                    <option value="no-detail">无明细表单</option>
                                 </select>
                                 <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                             </div>
@@ -21544,9 +21990,20 @@ ${shopsMap[link.shopId]}
                     <label for="add-link-shop" class="block text-sm font-medium text-gray-700 mb-1">
                         店铺归类
                     </label>
-                    <select id="add-link-shop" class="input-field w-full">
-                        <option value="">选择店铺</option>
-                    </select>
+                    <div class="relative">
+                        <input type="text" id="add-link-shop-input" placeholder="搜索或选择店铺..." class="w-full pl-10 pr-10 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 bg-white text-gray-700 cursor-pointer" onclick="event.stopPropagation(); toggleAddLinkShopDropdown();" oninput="filterAddLinkShopOptions(this.value);" onkeydown="handleAddLinkShopKeydown(event);">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fa fa-search text-gray-400"></i>
+                        </div>
+                        <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                            <i class="fa fa-chevron-down text-gray-400"></i>
+                        </div>
+                        <div id="add-link-shop-dropdown" class="absolute mt-1 w-full bg-white rounded-md shadow-lg max-h-80 overflow-auto hidden z-10">
+                            <ul class="py-1" id="add-link-shop-options">
+                                <!-- 店铺选项将通过JavaScript动态填充 -->
+                            </ul>
+                        </div>
+                    </div>
                 </div>
                 <div class="mb-4">
                     <label for="add-link-note" class="block text-sm font-medium text-gray-700 mb-1">
@@ -22110,14 +22567,15 @@ ${shopsMap[link.shopId]}
         function updatePlatformFilter() {
             const platformFilter = document.getElementById('platform-filter');
             const shopPlatformSelect = document.getElementById('shop-platform');
+            const calculationPlatformFilter = document.getElementById('calculation-platform-filter');
             
             // 确保platforms是数组，如果不是则使用默认列表
             const platformList = Array.isArray(platforms) ? platforms : ['淘宝', '京东', '拼多多', '抖音', '快手', '小红书'];
             
-            [platformFilter, shopPlatformSelect].forEach(select => {
+            [platformFilter, shopPlatformSelect, calculationPlatformFilter].forEach(select => {
                 if (select) {
                     const currentValue = select.value;
-                    select.innerHTML = '<option value="">' + (select.id === 'platform-filter' ? '所有平台' : '请选择平台') + '</option>';
+                    select.innerHTML = '<option value="">' + (select.id === 'platform-filter' ? '所有平台' : (select.id === 'calculation-platform-filter' ? '全部平台' : '请选择平台')) + '</option>';
                     
                     platformList.forEach(platform => {
                         const option = document.createElement('option');
@@ -23022,20 +23480,16 @@ ${shopsMap[link.shopId]}
                 document.getElementById('toast').classList.add('hidden');
             });
             
-            // 店铺筛选器事件
-            document.getElementById('shop-filter').addEventListener('change', function() {
-                const selectedShopId = this.value;
-                updateDashboard(selectedShopId);
-            });
+            // 店铺筛选器事件已通过内联事件处理
             
             // 排行榜排序和限制事件
             document.getElementById('ranking-sort').addEventListener('change', function() {
-                const selectedShopId = document.getElementById('shop-filter').value;
+                const selectedShopId = document.getElementById('dashboard-shop-filter-input').dataset.selectedValue || '';
                 updateDashboard(selectedShopId);
             });
             
             document.getElementById('ranking-limit').addEventListener('change', function() {
-                const selectedShopId = document.getElementById('shop-filter').value;
+                const selectedShopId = document.getElementById('dashboard-shop-filter-input').dataset.selectedValue || '';
                 updateDashboard(selectedShopId);
             });
             
@@ -23068,28 +23522,247 @@ ${shopsMap[link.shopId]}
         
         // 更新店铺筛选器选项
         function updateShopFilter() {
-            const shopFilter = document.getElementById('shop-filter');
-            const currentValue = shopFilter.value;
+            const shopDropdown = document.getElementById('dashboard-shop-dropdown');
+            const shopInput = document.getElementById('dashboard-shop-filter-input');
+            const currentValue = shopInput.dataset.selectedValue || '';
+            const currentText = shopInput.value;
             
             // 清空现有选项（保留"全部店铺"）
-            shopFilter.innerHTML = '<option value="">全部店铺</option>';
+            const dropdownContent = shopDropdown.querySelector('.py-1');
+            dropdownContent.innerHTML = '<div class="px-4 py-2 hover:bg-gray-100 cursor-pointer" data-value="" onclick="selectDashboardShopOption(\'\')">全部店铺</div>';
             
             // 添加所有店铺选项
             shops.forEach(shop => {
-                const option = document.createElement('option');
-                option.value = shop.id;
+                const option = document.createElement('div');
+                option.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer';
+                option.dataset.value = shop.id;
                 option.textContent = shop.name;
-                shopFilter.appendChild(option);
+                option.onclick = function() { selectDashboardShopOption(shop.id, shop.name); };
+                dropdownContent.appendChild(option);
             });
             
             // 添加未分类选项
-            const uncategorizedOption = document.createElement('option');
-            uncategorizedOption.value = 'uncategorized';
+            const uncategorizedOption = document.createElement('div');
+            uncategorizedOption.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer';
+            uncategorizedOption.dataset.value = 'uncategorized';
             uncategorizedOption.textContent = '未分类';
-            shopFilter.appendChild(uncategorizedOption);
+            uncategorizedOption.onclick = function() { selectDashboardShopOption('uncategorized', '未分类'); };
+            dropdownContent.appendChild(uncategorizedOption);
             
             // 恢复之前的选择
-            shopFilter.value = currentValue || '';
+            if (currentValue) {
+                const selectedShop = shops.find(shop => shop.id === currentValue);
+                if (selectedShop) {
+                    shopInput.value = selectedShop.name;
+                } else if (currentValue === 'uncategorized') {
+                    shopInput.value = '未分类';
+                }
+            } else if (!currentText) {
+                shopInput.value = '';
+            }
+            shopInput.dataset.selectedValue = currentValue;
+        }
+
+        // 切换店铺下拉框显示/隐藏
+        function toggleDashboardShopDropdown() {
+            const dropdown = document.getElementById('dashboard-shop-dropdown');
+            dropdown.classList.toggle('hidden');
+        }
+
+        // 筛选店铺选项
+        function filterDashboardShopOptions(searchTerm) {
+            const dropdownContent = document.getElementById('dashboard-shop-dropdown').querySelector('.py-1');
+            const options = dropdownContent.querySelectorAll('[data-value]');
+            
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                const term = searchTerm.toLowerCase();
+                
+                if (text.includes(term)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+        }
+
+        // 选择店铺选项
+        function selectDashboardShopOption(value, displayText = null) {
+            const input = document.getElementById('dashboard-shop-filter-input');
+            const dropdown = document.getElementById('dashboard-shop-dropdown');
+            
+            // 设置选中值
+            input.dataset.selectedValue = value;
+            
+            // 设置显示文本
+            if (displayText) {
+                input.value = displayText;
+            } else if (value === '') {
+                input.value = '';
+            } else if (value === 'uncategorized') {
+                input.value = '未分类';
+            } else {
+                const selectedShop = shops.find(shop => shop.id === value);
+                input.value = selectedShop ? selectedShop.name : '';
+            }
+            
+            // 隐藏下拉框
+            dropdown.classList.add('hidden');
+            
+            // 更新仪表盘
+            updateDashboard(value);
+            
+            // 更新清除按钮可见性
+            updateDashboardClearButtonVisibility();
+        }
+
+        // 处理店铺输入框键盘事件
+        function handleDashboardShopKeydown(event) {
+            const dropdown = document.getElementById('dashboard-shop-dropdown');
+            const options = Array.from(dropdown.querySelectorAll('[data-value]:not([style*="display: none"])'));
+            let selectedIndex = -1;
+            
+            // 查找当前选中的选项
+            options.forEach((option, index) => {
+                if (option.classList.contains('bg-blue-100')) {
+                    selectedIndex = index;
+                }
+            });
+            
+            switch (event.key) {
+                case 'ArrowDown':
+                    event.preventDefault();
+                    // 显示下拉框
+                    dropdown.classList.remove('hidden');
+                    
+                    // 更新选中项
+                    if (selectedIndex < options.length - 1) {
+                        if (selectedIndex >= 0) {
+                            options[selectedIndex].classList.remove('bg-blue-100');
+                        }
+                        options[selectedIndex + 1].classList.add('bg-blue-100');
+                        options[selectedIndex + 1].scrollIntoView({ block: 'nearest' });
+                    }
+                    break;
+                    
+                case 'ArrowUp':
+                    event.preventDefault();
+                    // 显示下拉框
+                    dropdown.classList.remove('hidden');
+                    
+                    // 更新选中项
+                    if (selectedIndex > 0) {
+                        options[selectedIndex].classList.remove('bg-blue-100');
+                        options[selectedIndex - 1].classList.add('bg-blue-100');
+                        options[selectedIndex - 1].scrollIntoView({ block: 'nearest' });
+                    }
+                    break;
+                    
+                case 'Enter':
+                    event.preventDefault();
+                    // 如果有选中的选项，选择它
+                    if (selectedIndex >= 0) {
+                        const value = options[selectedIndex].dataset.value;
+                        const text = options[selectedIndex].textContent;
+                        selectDashboardShopOption(value, text);
+                    }
+                    break;
+                    
+                case 'Escape':
+                    // 隐藏下拉框并清除高亮
+                    dropdown.classList.add('hidden');
+                    options.forEach(option => {
+                        option.classList.remove('bg-blue-100');
+                    });
+                    break;
+            }
+        }
+
+        // 更新仪表盘清除按钮可见性
+        function updateDashboardClearButtonVisibility() {
+            const input = document.getElementById('dashboard-shop-filter-input');
+            const clearButton = document.getElementById('dashboard-clear-shop-btn');
+            
+            if (input && clearButton) {
+                if (input.value.trim() !== '') {
+                    clearButton.classList.remove('hidden');
+                } else {
+                    clearButton.classList.add('hidden');
+                }
+            }
+        }
+        
+        // 清空仪表盘店铺选择
+        function clearDashboardShopSelection() {
+            const input = document.getElementById('dashboard-shop-filter-input');
+            const clearButton = document.getElementById('dashboard-clear-shop-btn');
+            
+            if (input) {
+                input.value = '';
+                input.dataset.selectedValue = '';
+                
+                // 重置筛选选项
+                filterDashboardShopOptions('');
+                
+                // 更新仪表盘
+                updateDashboard('');
+                
+                // 隐藏清除按钮
+                if (clearButton) {
+                    clearButton.classList.add('hidden');
+                }
+            }
+        }
+
+        // 点击页面其他地方关闭店铺下拉框
+        document.addEventListener('click', function(event) {
+            const shopInput = document.getElementById('dashboard-shop-filter-input');
+            const shopDropdown = document.getElementById('dashboard-shop-dropdown');
+            
+            // 如果点击的不是输入框及其子元素，也不是下拉框及其子元素，则关闭下拉框
+            if (shopInput && shopDropdown && 
+                !shopInput.contains(event.target) && 
+                !shopDropdown.contains(event.target) &&
+                event.target !== shopInput &&
+                !shopDropdown.classList.contains('hidden')) {
+                shopDropdown.classList.add('hidden');
+                
+                // 清除高亮
+                const options = shopDropdown.querySelectorAll('[data-value]');
+                options.forEach(option => {
+                    option.classList.remove('bg-blue-100');
+                });
+            }
+        });
+        
+        // 更新数据计算区平台筛选器选项
+        function updateCalculationPlatformFilter() {
+            const platformFilter = document.getElementById('calculation-platform-filter');
+            if (!platformFilter) return;
+            
+            const currentValue = platformFilter.value;
+            
+            // 清空现有选项（保留"全部平台"）
+            platformFilter.innerHTML = '<option value="">全部平台</option>';
+            
+            // 从localStorage获取平台列表
+            let platforms = JSON.parse(localStorage.getItem('platforms')) || [];
+            
+            // 如果没有平台数据，使用默认列表
+            if (platforms.length === 0) {
+                platforms = ['淘宝', '京东', '拼多多', '抖音', '快手', '小红书'];
+            }
+            
+            // 添加所有平台选项
+            platforms.forEach(platform => {
+                const option = document.createElement('option');
+                option.value = platform;
+                option.textContent = platform;
+                platformFilter.appendChild(option);
+            });
+            
+            // 恢复之前的选择
+            platformFilter.value = currentValue || '';
         }
         
         // 店铺管理相关函数
@@ -23117,6 +23790,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -24245,6 +24919,7 @@ ${shopsMap[link.shopId]}
                                 ${shopName !== '未分类' ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                                     ${shopName}
                                 </span>` : ''}
+                                ${getShopPlatformByProductId(product.id) ? `<span class="ml-2 px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(getShopPlatformByProductId(product.id))} text-white shadow-md">${getShopPlatformByProductId(product.id)}</span>` : ''}
                                 <span class="ml-2 badge ${product.netProfit >= 0 ? 'badge-success' : 'badge-danger'}">
                                     ${product.netProfit >= 0 ? '盈利' : '亏损'}
                                 </span>
@@ -24508,6 +25183,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -25746,6 +26422,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -26875,6 +27552,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -27720,7 +28398,7 @@ ${shopsMap[link.shopId]}
             updateRanking(filteredProducts);
             
             // 更新店铺统计
-            updateShopStats();
+            updateShopStats(shopId);
             
             // 更新排行榜
             updateRanking(filteredProducts);
@@ -27729,6 +28407,27 @@ ${shopsMap[link.shopId]}
             updateCostItemRanking(filteredProducts);
         }
         
+        // 获取店铺平台信息
+        function getShopPlatformByProductId(productId) {
+            const shop = shops.find(shop => shop.productIds.includes(productId));
+            return shop ? shop.platform : null;
+        }
+
+        // 获取平台对应的颜色类
+        function getPlatformColorClass(platform) {
+            const platformColors = {
+                '天猫': 'bg-red-500',
+                '京东': 'bg-red-600',
+                '拼多多': 'bg-red-600',
+                '抖音': 'bg-black',
+                '快手': 'bg-orange-500',
+                '小红书': 'bg-pink-500',
+                '淘宝': 'bg-orange-400',
+                '视频号': 'bg-green-500'
+            };
+            return platformColors[platform] || 'bg-gray-500';
+        }
+
         // 计算变化率
         function calculateChangeRate(current, previous) {
             if (previous === 0) return current > 0 ? 100 : 0;
@@ -28361,12 +29060,28 @@ ${shopsMap[link.shopId]}
                 return;
             }
             
-            const shopFilter = document.getElementById('calculation-shop-filter').value;
+            const platformFilter = document.getElementById('calculation-platform-filter').value;
+            const shopFilter = document.getElementById('calculation-shop-input').getAttribute('data-selected-value') || '';
             const profitStatusFilter = document.getElementById('profit-status-filter').value;
             const productIdSearch = document.getElementById('product-id-search').value.trim();
             
             // 复制原始数据
             let filteredProducts = [...productData];
+            
+            // 应用平台筛选
+            if (platformFilter) {
+                // 先找出属于该平台的所有店铺
+                const platformShops = shops.filter(shop => shop.platform === platformFilter);
+                const platformShopIds = platformShops.map(shop => shop.id);
+                
+                // 筛选这些店铺的产品
+                filteredProducts = filteredProducts.filter(product => {
+                    return platformShopIds.some(shopId => {
+                        const shop = shops.find(s => s.id === shopId);
+                        return shop && shop.productIds.includes(product.id);
+                    });
+                });
+            }
             
             // 应用店铺筛选
             if (shopFilter) {
@@ -28438,7 +29153,13 @@ ${shopsMap[link.shopId]}
         
         // 清除数据计算区筛选
         function clearCalculationFilters() {
-            document.getElementById('calculation-shop-filter').value = '';
+            const shopInput = document.getElementById('calculation-shop-input');
+            if (shopInput) {
+                shopInput.value = '';
+                shopInput.setAttribute('data-selected-value', '');
+                // 重置下拉框显示所有店铺选项
+                filterShopOptions('');
+            }
             document.getElementById('profit-status-filter').value = '';
             document.getElementById('product-id-search').value = '';
             
@@ -28450,23 +29171,244 @@ ${shopsMap[link.shopId]}
         
         // 更新数据计算区店铺筛选器
         function updateCalculationShopFilter() {
-            const shopFilter = document.getElementById('calculation-shop-filter');
-            if (!shopFilter) return;
+            const shopDropdown = document.getElementById('shop-dropdown');
+            if (!shopDropdown) return;
             
-            // 清空现有选项（保留"全部店铺"和"未分类"）
-            shopFilter.innerHTML = `
-                <option value="">全部店铺</option>
-                <option value="uncategorized">未分类</option>
-            `;
+            // 获取店铺选项容器
+            const shopOptionsContainer = shopDropdown.querySelector('.py-1');
+            
+            // 保留"全部店铺"和"未分类"选项，清空其他选项
+            const allOption = shopOptionsContainer.querySelector('[data-value=""]');
+            const uncategorizedOption = shopOptionsContainer.querySelector('[data-value="uncategorized"]');
+            
+            // 清空所有子元素
+            shopOptionsContainer.innerHTML = '';
+            
+            // 重新添加"全部店铺"和"未分类"选项
+            if (allOption) shopOptionsContainer.appendChild(allOption);
+            if (uncategorizedOption) shopOptionsContainer.appendChild(uncategorizedOption);
             
             // 添加已有的店铺选项
             shops.forEach(shop => {
-                const option = document.createElement('option');
-                option.value = shop.id;
-                option.textContent = shop.name;
-                shopFilter.appendChild(option);
+                const optionDiv = document.createElement('div');
+                optionDiv.className = 'px-4 py-2 hover:bg-gray-100 cursor-pointer shop-option';
+                optionDiv.setAttribute('data-value', shop.id);
+                optionDiv.textContent = shop.name;
+                optionDiv.onclick = function() {
+                    selectShopOption(shop.id, shop.name);
+                };
+                shopOptionsContainer.appendChild(optionDiv);
             });
         }
+
+        // 切换店铺下拉框显示/隐藏
+        function toggleShopDropdown() {
+            const dropdown = document.getElementById('shop-dropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('hidden');
+                
+                // 如果下拉菜单显示，添加事件委托来处理选项点击
+                if (!dropdown.classList.contains('hidden')) {
+                    // 移除可能存在的旧事件监听器
+                    dropdown.removeEventListener('click', handleShopOptionClick);
+                    // 添加新的事件监听器
+                    dropdown.addEventListener('click', handleShopOptionClick);
+                }
+            }
+        }
+        
+        // 处理店铺选项点击事件
+        function handleShopOptionClick(event) {
+            const target = event.target;
+            // 检查是否点击了店铺选项
+            if (target.classList.contains('shop-option')) {
+                const input = document.getElementById('calculation-shop-input');
+                if (input) {
+                    // 设置输入框的值为选项文本
+                    input.value = target.textContent.trim();
+                    
+                    // 更新清除按钮可见性
+                    updateClearButtonVisibility();
+                    
+                    // 隐藏下拉菜单
+                    const dropdown = document.getElementById('shop-dropdown');
+                    if (dropdown) {
+                        dropdown.classList.add('hidden');
+                    }
+                    
+                    // 触发input事件以确保其他逻辑得到执行
+                    input.dispatchEvent(new Event('input'));
+                }
+            }
+        }
+
+        // 筛选店铺选项
+        function filterShopOptions(value) {
+            const options = document.querySelectorAll('.shop-option');
+            const filterValue = value.toLowerCase();
+            
+            options.forEach(option => {
+                const text = option.textContent.toLowerCase();
+                if (text.includes(filterValue)) {
+                    option.style.display = 'block';
+                } else {
+                    option.style.display = 'none';
+                }
+            });
+            
+            // 更新清除按钮可见性
+            updateClearButtonVisibility();
+        }
+        
+        // 更新清除按钮可见性
+        function updateClearButtonVisibility() {
+            const input = document.getElementById('calculation-shop-input');
+            const clearButton = document.getElementById('clear-shop-input-btn');
+            
+            if (input && clearButton) {
+                if (input.value.trim() !== '') {
+                    clearButton.classList.remove('hidden');
+                } else {
+                    clearButton.classList.add('hidden');
+                }
+            }
+        }
+        
+        // 清空店铺输入框
+        function clearShopInput() {
+            const input = document.getElementById('calculation-shop-input');
+            const clearButton = document.getElementById('clear-shop-input-btn');
+            
+            if (input) {
+                input.value = '';
+                
+                // 重置筛选选项
+                filterShopOptions('');
+                
+                // 隐藏清除按钮
+                if (clearButton) {
+                    clearButton.classList.add('hidden');
+                }
+                
+                // 可选：重新打开下拉菜单
+                toggleShopDropdown();
+                
+                // 触发input事件以确保其他逻辑得到执行
+                input.dispatchEvent(new Event('input'));
+            }
+        }
+
+        // 处理店铺输入框键盘事件
+        function handleShopKeydown(event) {
+            const dropdown = document.getElementById('shop-dropdown');
+            const activeOption = dropdown?.querySelector('.shop-option-active');
+            const allOptions = Array.from(dropdown?.querySelectorAll('.shop-option:not([style*="display: none"])') || []);
+            
+            if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                if (!activeOption && allOptions.length > 0) {
+                    allOptions[0].classList.add('shop-option-active', 'bg-blue-50');
+                } else if (activeOption) {
+                    activeOption.classList.remove('shop-option-active', 'bg-blue-50');
+                    const currentIndex = allOptions.indexOf(activeOption);
+                    const nextOption = allOptions[(currentIndex + 1) % allOptions.length];
+                    nextOption.classList.add('shop-option-active', 'bg-blue-50');
+                    nextOption.scrollIntoView({ block: 'nearest' });
+                }
+            } else if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (activeOption) {
+                    activeOption.classList.remove('shop-option-active', 'bg-blue-50');
+                    const currentIndex = allOptions.indexOf(activeOption);
+                    const prevOption = allOptions[(currentIndex - 1 + allOptions.length) % allOptions.length];
+                    prevOption.classList.add('shop-option-active', 'bg-blue-50');
+                    prevOption.scrollIntoView({ block: 'nearest' });
+                } else if (allOptions.length > 0) {
+                    allOptions[allOptions.length - 1].classList.add('shop-option-active', 'bg-blue-50');
+                }
+            } else if (event.key === 'Enter' && activeOption) {
+                event.preventDefault();
+                const value = activeOption.getAttribute('data-value');
+                const text = activeOption.textContent;
+                selectShopOption(value, text);
+            } else if (event.key === 'Escape') {
+                dropdown.classList.add('hidden');
+                clearActiveShopOption();
+            }
+        }
+
+        // 选择店铺选项
+        function selectShopOption(value, text) {
+            const input = document.getElementById('calculation-shop-input');
+            const dropdown = document.getElementById('shop-dropdown');
+            
+            if (input) {
+                input.value = text;
+                // 存储选中的值，可以用于后续的筛选逻辑
+                input.setAttribute('data-selected-value', value);
+            }
+            
+            if (dropdown) {
+                dropdown.classList.add('hidden');
+            }
+            
+            clearActiveShopOption();
+        }
+
+        // 清除激活的店铺选项
+        function clearActiveShopOption() {
+            const activeOption = document.querySelector('.shop-option-active');
+            if (activeOption) {
+                activeOption.classList.remove('shop-option-active', 'bg-blue-50');
+            }
+        }
+
+        // 更新仪表盘清除按钮可见性
+        function updateDashboardClearButtonVisibility() {
+            const input = document.getElementById('dashboard-shop-filter-input');
+            const clearButton = document.getElementById('dashboard-clear-shop-btn');
+            
+            if (input && clearButton) {
+                if (input.value.trim() !== '') {
+                    clearButton.classList.remove('hidden');
+                } else {
+                    clearButton.classList.add('hidden');
+                }
+            }
+        }
+        
+        // 清空仪表盘店铺选择
+        function clearDashboardShopSelection() {
+            const input = document.getElementById('dashboard-shop-filter-input');
+            const clearButton = document.getElementById('dashboard-clear-shop-btn');
+            
+            if (input) {
+                input.value = '';
+                input.dataset.selectedValue = '';
+                
+                // 重置筛选选项
+                filterDashboardShopOptions('');
+                
+                // 更新仪表盘
+                updateDashboard('');
+                
+                // 隐藏清除按钮
+                if (clearButton) {
+                    clearButton.classList.add('hidden');
+                }
+            }
+        }
+
+        // 点击页面其他地方关闭店铺下拉框
+        document.addEventListener('click', function(event) {
+            const dropdown = document.getElementById('shop-dropdown');
+            const input = document.getElementById('calculation-shop-input');
+            
+            if (dropdown && !dropdown.contains(event.target) && input && !input.contains(event.target)) {
+                dropdown.classList.add('hidden');
+                clearActiveShopOption();
+            }
+        });
         
         // 渲染筛选后的结果
         function renderFilteredResults(filteredProducts) {
@@ -28546,6 +29488,7 @@ ${shopsMap[link.shopId]}
                                 ${shopName !== '未分类' ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                                     ${shopName}
                                 </span>` : ''}
+                                ${getShopPlatformByProductId(product.id) ? `<span class="ml-2 px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(getShopPlatformByProductId(product.id))} text-white shadow-md">${getShopPlatformByProductId(product.id)}</span>` : ''}
                                 <span class="ml-2 badge ${product.netProfit >= 0 ? 'badge-success' : 'badge-danger'}">
                                     ${product.netProfit >= 0 ? '盈利' : '亏损'}
                                 </span>
@@ -28769,7 +29712,7 @@ ${shopsMap[link.shopId]}
         }
         
         // 更新店铺统计
-        function updateShopStats() {
+        function updateShopStats(filterShopId = '') {
             const shopStatsGrid = document.getElementById('shop-stats-grid');
             
             if (productData.length === 0 || shops.length === 0) {
@@ -28787,6 +29730,10 @@ ${shopsMap[link.shopId]}
             
             // 添加每个店铺的统计
             shops.forEach(shop => {
+                // 如果有筛选条件且当前店铺不匹配，则跳过
+                if (filterShopId && filterShopId !== shop.id) {
+                    return;
+                }
                 const shopProducts = productData.filter(product => 
                     shop.productIds.includes(product.id)
                 );
@@ -28812,10 +29759,12 @@ ${shopsMap[link.shopId]}
             });
             
             // 添加未分类产品的统计
-            const uncategorizedProducts = productData.filter(product => {
-                const productShop = getShopNameByProductId(product.id);
-                return productShop === '未分类';
-            });
+            // 只有在没有筛选条件或筛选条件是未分类时才添加未分类产品的统计
+            if (!filterShopId || filterShopId === 'uncategorized') {
+                const uncategorizedProducts = productData.filter(product => {
+                    const productShop = getShopNameByProductId(product.id);
+                    return productShop === '未分类';
+                });
             
             if (uncategorizedProducts.length > 0) {
                 const quantity = uncategorizedProducts.reduce((sum, product) => sum + product.totalQuantity, 0);
@@ -28833,6 +29782,7 @@ ${shopsMap[link.shopId]}
                     profitMargin
                 });
             }
+            }
             
             // 渲染店铺统计卡片
             if (shopStats.length === 0) {
@@ -28847,7 +29797,7 @@ ${shopsMap[link.shopId]}
                     <div class="card border border-gray-200 hover:shadow-md transition-all-300 bg-white">
                         <div class="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                             <div class="flex items-center">
-                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 rounded-lg shadow-md text-lg font-bold">
+                                <h3 class="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-lg shadow-md text-sm font-bold">
                                     ${shop.name}
                                 </h3>
                             </div>
@@ -28915,6 +29865,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -30532,6 +31483,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -31301,6 +32253,7 @@ ${shopsMap[link.shopId]}
             
             // 更新平台选择器
             updatePlatformFilter();
+            updateCalculationPlatformFilter();
             
             modal.classList.remove('hidden');
         }
@@ -34150,11 +35103,9 @@ ${shopsMap[link.shopId]}
                     <td class="px-4 py-3 whitespace-nowrap font-mono">${purchase.code || 'N/A'}</td>
                     <td class="px-4 py-3 whitespace-nowrap text-center">
                         <div class="flex space-x-2 justify-center items-center">
-                            ${hasDetailForm ? `
-                                <button onclick="toggleDetailForm('${purchase.id}')" class="${allItemsReceived ? 'text-green-600 hover:text-green-900' : someItemsReceived ? 'text-purple-600 hover:text-purple-900' : 'text-red-600 hover:text-red-900'}">
-                                    <i class="fa fa-list"></i>
-                                </button>
-                            ` : ''}
+                            <button onclick="toggleDetailForm('${purchase.id}')" class="${purchase.received ? 'text-green-600 hover:text-green-900' : (hasDetailForm ? (allItemsReceived ? 'text-green-600 hover:text-green-900' : someItemsReceived ? 'text-purple-600 hover:text-purple-900' : 'text-red-600 hover:text-red-900') : 'text-red-600 hover:text-red-900 editing-breathing-bg')}">
+                                <i class="fa fa-list" style="font-size: 16px;"></i>
+                            </button>
                             <button onclick="editPurchase(${originalIndex})" class="text-primary hover:text-primary/80">
                                 <i class="fa fa-pencil"></i>
                             </button>
@@ -34164,52 +35115,89 @@ ${shopsMap[link.shopId]}
                         </div>
                     </td>
                 </tr>
-                ${hasDetailForm && detailForm ? `
                 <tr id="detail-form-${purchase.id}" class="hidden bg-gray-50">
                     <td colspan="11" class="px-4 py-3">
                         <div class="bg-white border border-gray-200 rounded-lg p-4">
-                            <div class="flex justify-between items-center mb-3">
-                                <h4 class="text-lg font-semibold text-gray-800">明细表单：${detailForm.name}</h4>
-                                <div class="text-sm text-gray-600 flex items-center space-x-3">
-                                    <span>共${detailForm.items.length}项</span>
-                                    <span class="text-gray-300">|</span>
-                                    <span>总数 <span id="detail-form-total-quantity-${purchase.id}">${detailForm.items.reduce((sum, item) => sum + (item.receivedQuantity || 0), 0)}</span></span>
+                            ${hasDetailForm && detailForm ? `
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-lg font-semibold text-gray-800">明细表单：${detailForm.name}</h4>
+                                    <div class="text-sm text-gray-600 flex items-center space-x-3">
+                                        <span>共${detailForm.items.length}项</span>
+                                        <span class="text-gray-300">|</span>
+                                        <span>总数 <span id="detail-form-total-quantity-${purchase.id}">${detailForm.items.reduce((sum, item) => sum + (item.receivedQuantity || 0), 0)}</span></span>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
-                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订货数量</th>
-                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">实收数量</th>
-                                            <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">收货状态</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        ${detailForm.items.map(item => `
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
                                             <tr>
-                                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${item.name}</td>
-                                                <td class="px-4 py-2 whitespace-nowrap font-medium">${item.quantity}</td>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订货数量</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">实收数量</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">收货状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            ${detailForm.items.map(item => `
+                                                <tr>
+                                                    <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${item.name}</td>
+                                                    <td class="px-4 py-2 whitespace-nowrap font-medium">${item.quantity}</td>
+                                                    <td class="px-4 py-2 whitespace-nowrap">
+                                                        <input type="number" value="${item.receivedQuantity || 0}" class="w-24 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500" 
+                                                               onchange="updateReceivedQuantity('${purchase.id}', '${item.name}', this.value)" oninput="updateReceivedQuantity('${purchase.id}', '${item.name}', this.value)">
+                                                    </td>
+                                                    <td class="px-4 py-2 whitespace-nowrap">
+                                                        <button class="px-2 py-1 text-xs rounded ${item.received ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} hover:bg-green-200 transition-colors"
+                                                                onclick="toggleItemReceived('${purchase.id}', '${item.name}')">
+                                                            ${item.received ? '已收到' : '待收货'}
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            `).join('')}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            ` : `
+                                <div class="flex justify-between items-center mb-3">
+                                    <h4 class="text-lg font-semibold text-gray-800">默认采购明细</h4>
+                                    <div class="text-sm text-gray-600 flex items-center space-x-3">
+                                        <span>共1项</span>
+                                        <span class="text-gray-300">|</span>
+                                        <span>总数 <span id="detail-form-total-quantity-${purchase.id}">${purchase.receivedQuantity || 0}</span></span>
+                                    </div>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">名称</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">订货数量</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">实收数量</th>
+                                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">收货状态</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="bg-white divide-y divide-gray-200">
+                                            <tr>
+                                                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">${purchase.product}</td>
+                                                <td class="px-4 py-2 whitespace-nowrap font-medium">${purchase.quantity}</td>
                                                 <td class="px-4 py-2 whitespace-nowrap">
-                                                    <input type="number" value="${item.receivedQuantity || 0}" class="w-24 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500" 
-                                                           onchange="updateReceivedQuantity('${purchase.id}', '${item.name}', this.value)" oninput="updateReceivedQuantity('${purchase.id}', '${item.name}', this.value)">
+                                                    <input type="number" value="${purchase.receivedQuantity || 0}" class="w-24 px-3 py-2 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-green-500" 
+                                                           onchange="updateDefaultReceivedQuantity('${purchase.id}', this.value)" oninput="updateDefaultReceivedQuantity('${purchase.id}', this.value)">
                                                 </td>
                                                 <td class="px-4 py-2 whitespace-nowrap">
-                                                    <button class="px-2 py-1 text-xs rounded ${item.received ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} hover:bg-green-200 transition-colors"
-                                                            onclick="toggleItemReceived('${purchase.id}', '${item.name}')">
-                                                        ${item.received ? '已收到' : '待收货'}
+                                                    <button class="px-2 py-1 text-xs rounded ${purchase.received ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'} hover:bg-green-200 transition-colors"
+                                                            onclick="toggleDefaultItemReceived('${purchase.id}')">
+                                                        ${purchase.received ? '已收到' : '待收货'}
                                                     </button>
                                                 </td>
                                             </tr>
-                                        `).join('')}
-                                    </tbody>
-                                </table>
-                            </div>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            `}
                         </div>
                     </td>
                 </tr>
-                ` : ''}
                 `;
             }).join('');
             
@@ -35413,6 +36401,10 @@ ${shopsMap[link.shopId]}
                         if (!hasDetailForm || !detailForm) {
                             return false;
                         }
+                    } else if (receiptStatus === 'no-detail') {
+                        if (hasDetailForm && detailForm) {
+                            return false;
+                        }
                     } else if (hasDetailForm && detailForm) {
                         const allReceived = detailForm.items.length > 0 && detailForm.items.every(item => item.received);
                         const someReceived = detailForm.items.length > 0 && detailForm.items.some(item => item.received);
@@ -35426,9 +36418,17 @@ ${shopsMap[link.shopId]}
                         }
                     } else {
                         // 没有明细表单的记录，根据过滤条件决定是否显示
-                        if (receiptStatus !== 'has-detail') {
-                            // 对于没有明细表单的记录，只在不过滤收货状态时显示
-                            return false;
+                        // 对于默认采购明细，检查purchase.received属性
+                        if (purchase.received) {
+                            // 如果记录已标记为收到
+                            if (receiptStatus === 'none-received' || receiptStatus === 'part-received') {
+                                return false;
+                            }
+                        } else {
+                            // 如果记录未标记为收到
+                            if (receiptStatus === 'all-received' || receiptStatus === 'part-received') {
+                                return false;
+                            }
                         }
                     }
                 }
@@ -36861,6 +37861,134 @@ ${shopsMap[link.shopId]}
             }
         }
         
+        // 更新默认采购明细的实收数量
+        function updateDefaultReceivedQuantity(purchaseId, newQuantity) {
+            const quantity = parseInt(newQuantity) || 0;
+            
+            // 找到对应的采购记录
+            const purchase = purchaseData.purchases.find(p => p.id === purchaseId);
+            if (!purchase) return;
+            
+            // 更新实收数量
+            purchase.receivedQuantity = quantity;
+            
+            // 更新总数显示
+            const totalQuantityElement = document.getElementById(`detail-form-total-quantity-${purchaseId}`);
+            if (totalQuantityElement) {
+                totalQuantityElement.textContent = quantity;
+            }
+            
+            // 保存采购数据
+            savePurchaseData();
+            
+            // 显示成功提示
+            showToast('成功', '实收数量已更新', 'success');
+        }
+
+        // 切换默认采购明细的收货状态
+        function toggleDefaultItemReceived(purchaseId) {
+            // 找到对应的采购记录
+            const purchase = purchaseData.purchases.find(p => p.id === purchaseId);
+            if (!purchase) return;
+            
+            // 获取当前输入框的值
+            const inputElement = document.querySelector(`input[onchange="updateDefaultReceivedQuantity('${purchaseId}', this.value)"]`);
+            const currentReceivedValue = inputElement ? parseInt(inputElement.value) || 0 : 0;
+            
+            // 切换收货状态
+            purchase.received = !purchase.received;
+            
+            // 如果标记为已收到
+            if (purchase.received) {
+                // 使用当前输入框的值作为实收数量
+                purchase.receivedQuantity = currentReceivedValue;
+                
+                // 确保实收数量有值
+                if (purchase.receivedQuantity === 0) {
+                    purchase.receivedQuantity = purchase.quantity;
+                    if (inputElement) {
+                        inputElement.value = purchase.receivedQuantity;
+                    }
+                }
+                
+                // 更新总数显示为当前的实收数量
+                const totalQuantityElement = document.getElementById(`detail-form-total-quantity-${purchaseId}`);
+                if (totalQuantityElement) {
+                    totalQuantityElement.textContent = purchase.receivedQuantity;
+                }
+                
+                // 关键修复：更新采购记录的数量和总价
+                purchase.quantity = purchase.receivedQuantity;
+                purchase.totalPrice = purchase.receivedQuantity * purchase.unitPrice;
+                
+                // 如果已付金额大于新的总价，调整已付金额
+                if (purchase.paidAmount > purchase.totalPrice) {
+                    purchase.paidAmount = purchase.totalPrice;
+                }
+                
+                // 记录当前展开的表单状态
+                const isDetailFormOpen = document.getElementById(`detail-form-${purchaseId}`) && 
+                                       !document.getElementById(`detail-form-${purchaseId}`).classList.contains('hidden');
+                
+                // 重新渲染采购数据列表以确保所有数据正确更新
+                renderPurchaseData();
+                
+                // 如果之前表单是展开的，重新展开它
+                if (isDetailFormOpen) {
+                    setTimeout(() => {
+                        const detailForm = document.getElementById(`detail-form-${purchaseId}`);
+                        if (detailForm) {
+                            detailForm.classList.remove('hidden');
+                        }
+                    }, 100);
+                }
+                
+                showToast('提示', '已标记为收到，采购记录数量已更新', 'info');
+            } else {
+                // 如果取消收货标记
+                purchase.receivedQuantity = 0;
+                
+                // 更新总数显示
+                const totalQuantityElement = document.getElementById(`detail-form-total-quantity-${purchaseId}`);
+                if (totalQuantityElement) {
+                    totalQuantityElement.textContent = '0';
+                }
+                
+                // 更新输入框的值
+                if (inputElement) {
+                    inputElement.value = '0';
+                }
+            }
+            
+            // 保存采购数据
+            savePurchaseData();
+            
+            // 直接更新UI而不重新渲染整个列表
+            const detailRow = document.getElementById(`detail-form-${purchaseId}`);
+            if (detailRow) {
+                // 更新按钮状态
+                const button = event.target.closest('button');
+                if (button) {
+                    if (purchase.received) {
+                        button.className = 'px-2 py-1 text-xs rounded bg-green-100 text-green-800 hover:bg-green-200 transition-colors';
+                        button.textContent = '已收到';
+                    } else {
+                        button.className = 'px-2 py-1 text-xs rounded bg-gray-100 text-gray-800 hover:bg-green-200 transition-colors';
+                        button.textContent = '待收货';
+                    }
+                }
+            }
+            
+            // 更新列表图标颜色
+            const listButton = document.querySelector(`button[onclick="toggleDetailForm('${purchaseId}')"]`);
+            if (listButton) {
+                listButton.className = purchase.received ? 'text-green-600 hover:text-green-900' : 'text-red-600 hover:text-red-900 editing-breathing-bg';
+            }
+            
+            // 显示成功提示
+            showToast('成功', purchase.received ? '已标记为收到' : '已取消收货标记', 'success');
+        }
+
         // 切换明细项收货状态
         function toggleItemReceived(purchaseId, itemName) {
             // 找到对应的采购记录
