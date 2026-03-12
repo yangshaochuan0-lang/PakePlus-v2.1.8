@@ -18,7 +18,36 @@
     <script src="https://cdn.jsdelivr.net/npm/lz-string@1.5.0/libs/lz-string.min.js"></script>
     
     <!-- Tailwind Config -->
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -129,6 +158,15 @@
         }
     </script>
     
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
     // 产品图片上传相关功能
     let currentProductImageFile = null;
@@ -1928,9 +1966,9 @@
             </div>
         </div>
                 </div>
-            </div>
-        </div>
-    </div>
+            
+        
+    
 
     <!-- Edit Link Modal -->
     <div id="edit-link-modal" class="fixed inset-0 bg-black/0 backdrop-blur-0 flex items-center justify-center z-50 hidden transition-all duration-300" style="z-index: 9999; position: fixed; top: 0; left: 0; right: 0; bottom: 0;">
@@ -2148,7 +2186,7 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-6">
         <!-- Notes Page -->
-        <div id="notes" class="hidden">
+        <div id="notes" class="hidden animate-fadeIn">
             <div class="max-w-9xl mx-auto w-full px-4">
                     
 
@@ -2504,7 +2542,16 @@
             </div>
         </div>
 
-        <script>
+        <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
         // 打开截止日期模态框
         function openDueDateModal() {
             const modal = document.getElementById('due-date-modal');
@@ -2719,7 +2766,36 @@
                                 #note-content hr { margin: 1em 0; }
                                 #note-content u { text-decoration: underline; text-underline-offset: 2px; }
                             </style>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -2878,7 +2954,7 @@
         </div>
 
         <!-- Settings Page -->
-        <div id="settings" class="hidden">
+        <div id="settings" class="hidden animate-fadeIn">
             <div class="max-w-4xl mx-auto">
                 <div class="bg-white rounded-lg shadow-lg p-8">
                     <div class="flex justify-between items-center mb-8">
@@ -3034,7 +3110,36 @@
                 </div>
             </div>
         </div>
-        <script>
+        <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -4028,6 +4133,29 @@
                             
                             // 加载笔记页面数据
                             loadNotesPage();
+                        } else if (tabId === 'dashboard') {
+                            // 为数据看板添加渐显动画
+                            document.querySelectorAll('.tab').forEach(t => {
+                                t.classList.remove('tab-active');
+                            });
+                            this.classList.add('tab-active');
+                            
+                            document.querySelectorAll('main > div').forEach(div => {
+                                div.classList.add('hidden');
+                            });
+                            
+                            const dashboardContent = document.getElementById('dashboard');
+                            dashboardContent.classList.remove('hidden');
+                            // 重置透明度，然后在小延迟后显示
+                            dashboardContent.style.opacity = '0';
+                            setTimeout(() => {
+                                dashboardContent.style.opacity = '1';
+                            }, 50);
+                            
+                            // 加载数据看板数据
+                            if (typeof updateDashboard === 'function') {
+                                updateDashboard();
+                            }
                         }
                     });
                 });
@@ -7150,7 +7278,36 @@
         </script>
         
         <!-- 页面加载完成后初始化定价工具 -->
-        <script>
+        <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -7274,7 +7431,36 @@
             });
         </script>
         
-        <script>
+        <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -14123,7 +14309,7 @@ ${shopsMap[link.shopId]}
 
 
         
-        <div id="shop-management" class="tab-content hidden">
+        <div id="shop-management" class="tab-content hidden animate-fadeIn">
             <div class="card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-2xl font-semibold text-gray-800 flex items-center">店铺管理 <span id="shop-count" class="ml-3 text-sm text-primary px-3 py-1 flex items-center"><span id="shop-count-number" class="text-lg mr-1">6</span> <span class="text-lg">家店铺</span></span></h2>
@@ -14158,7 +14344,36 @@ ${shopsMap[link.shopId]}
                     <p>暂无店铺，请添加</p>
                 </div>
                 
-                <script>
+                <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -14425,7 +14640,7 @@ ${shopsMap[link.shopId]}
         </div>
 
         <!-- Data Calculation Tab -->
-        <div id="data-calculation" class="tab-content">
+        <div id="data-calculation" class="tab-content opacity-0 animate-fadeIn">
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
                 <!-- File Upload Section -->
                 <div class="lg:col-span-3">
@@ -14665,7 +14880,7 @@ ${shopsMap[link.shopId]}
         </div>
         
         <!-- Cost Records Tab -->
-        <div id="cost-records" class="tab-content hidden">
+        <div id="cost-records" class="tab-content hidden animate-fadeIn">
             <div class="flex justify-between items-center mb-4">
                 <h2 class="text-xl font-semibold text-gray-800" style="font-size: 22px;">细化成本管理</h2>
                 <div class="flex items-center space-x-2">
@@ -14676,7 +14891,36 @@ ${shopsMap[link.shopId]}
                         <input type="text" id="cost-search" placeholder="搜索成本项目..." class="w-64 px-4 py-2 pl-10 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" style="padding-left: 2rem;">
                     </div>
 
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -15200,7 +15444,7 @@ ${shopsMap[link.shopId]}
         </div>
         
         <!-- SKU Costs Tab -->
-        <div id="sku-costs" class="tab-content hidden">
+        <div id="sku-costs" class="tab-content hidden animate-fadeIn">
             <div class="card">
                 <div class="flex justify-between items-center mb-4">
                     <h2 class="text-lg font-semibold text-gray-800" style="font-size: 22px;">规格成本管理</h2>
@@ -15262,10 +15506,10 @@ ${shopsMap[link.shopId]}
                     共 <span id="sku-count">0</span> 条规格编码记录
                 </div>
             </div>
-        </div>
+        
         
         <!-- New Product Pricing Tool Tab -->
-        <div id="pricing-tool" class="tab-content hidden">
+        <div id="pricing-tool" class="tab-content hidden animate-fadeIn">
             <div class="card">
                 <div class="flex justify-between items-center mb-4">
 
@@ -15365,7 +15609,7 @@ ${shopsMap[link.shopId]}
         </div>
         
         <!-- Dashboard Tab -->
-        <div id="dashboard" class="tab-content hidden">
+        <div id="dashboard" class="tab-content hidden opacity-0 transition-opacity duration-1000">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-6">
                 <!-- Total Profit Card -->
                 <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-xl shadow-lg border border-green-200 hover:shadow-xl transition-all duration-300 overflow-hidden group">
@@ -15623,7 +15867,7 @@ ${shopsMap[link.shopId]}
             </div>
         </div>
         <!-- 采购管理 -->
-        <div id="purchase-management" class="tab-content hidden">
+        <div id="purchase-management" class="tab-content hidden animate-fadeIn">
             <div class="bg-white rounded-lg shadow-sm border border-gray-100 mb-6 overflow-hidden">
                 <div class="flex p-1">
                     <button class="purchase-tab flex-1 py-3 px-4 text-center rounded-md transition-all duration-300 font-bold text-lg bg-blue-50 text-primary" data-purchase-tab="purchase-registration">
@@ -15671,7 +15915,36 @@ ${shopsMap[link.shopId]}
                                     </div>
                                 </div>
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -16036,7 +16309,16 @@ ${shopsMap[link.shopId]}
                                     </div>
                                 </div>
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
                                 // 添加点击页面其他区域时隐藏下拉框的功能
                                 document.addEventListener('click', function(event) {
                                     const dropdown = document.getElementById('detail-form-select');
@@ -16276,7 +16558,36 @@ ${shopsMap[link.shopId]}
                                     }
                                 });
                             </script>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -16616,7 +16927,36 @@ ${shopsMap[link.shopId]}
                                 <label class="block text-sm font-medium text-gray-700 mb-1">采购单价</label>
                                 <input type="number" id="purchase-unit-price" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 bg-gray-50" placeholder="自动获取产品成本" readonly="">
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -16956,7 +17296,36 @@ ${shopsMap[link.shopId]}
                                 <label class="block text-sm font-medium text-gray-700 mb-1">采购总价</label>
                                 <input type="number" id="purchase-total-price" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400 bg-gray-50" placeholder="自动计算" readonly="">
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -17296,7 +17665,36 @@ ${shopsMap[link.shopId]}
                                 <label class="block text-sm font-medium text-gray-700 mb-1">已付金额</label>
                                 <input type="number" id="purchase-paid-amount" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" placeholder="请输入已付金额" min="0">
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -17636,7 +18034,16 @@ ${shopsMap[link.shopId]}
                                 <label class="block text-sm font-medium text-gray-700 mb-1">采购日期</label>
                                 <input type="datetime-local" id="purchase-date" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" value="">
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
                                 // 增强版设置采购日期为当前时间的函数
                                 function setPurchaseDateToCurrent() {
                                     try {
@@ -17712,7 +18119,36 @@ ${shopsMap[link.shopId]}
                                     }
                                 }, 30000);
                             </script>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -18057,7 +18493,36 @@ ${shopsMap[link.shopId]}
                                     <i class="fa fa-chevron-down absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 pointer-events-none"></i>
                                 </div>
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -18399,7 +18864,36 @@ ${shopsMap[link.shopId]}
                             </div>
                             <button type="button" id="save-purchase-btn" class="btn btn-primary w-full mt-4">保存记录</button>
                         </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -18919,7 +19413,36 @@ ${shopsMap[link.shopId]}
                             <input type="text" id="filter-payment-code" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" placeholder="请输入编码">
                         </div>
                     </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -19274,7 +19797,36 @@ ${shopsMap[link.shopId]}
                                     <input type="number" id="filter-payment-min-amount" class="w-full pl-8 pr-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400" placeholder="最小金额" min="0" step="0.01">
                                 </div>
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -19623,7 +20175,36 @@ ${shopsMap[link.shopId]}
                                 <label class="block text-sm font-medium text-gray-700 mb-1">开始日期</label>
                                 <input type="date" id="filter-payment-start-date" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400">
                             </div>
-                            <script>
+                            <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -19965,7 +20546,36 @@ ${shopsMap[link.shopId]}
                             </div>
                         </div>
                     </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -20317,7 +20927,36 @@ ${shopsMap[link.shopId]}
                             <button type="button" id="search-payment-filter-btn" class="btn btn-sm btn-primary">查询</button>
                         </div>
                     </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -20883,7 +21522,36 @@ ${shopsMap[link.shopId]}
                             <input type="date" id="filter-end-date" class="w-full px-4 py-2 border-2 border-gray-200 rounded-lg shadow-sm focus:ring-2 focus:ring-blue-100 focus:border-blue-500 transition-all duration-200 text-gray-700 placeholder-gray-400">
                         </div>
                     </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -21229,7 +21897,36 @@ ${shopsMap[link.shopId]}
                             }
                         });
                     </script>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -21572,7 +22269,36 @@ ${shopsMap[link.shopId]}
                             <button type="button" id="search-filter-btn" class="btn btn-primary">查询</button>
                         </div>
                     </form>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -22151,7 +22877,36 @@ ${shopsMap[link.shopId]}
                         </div>
                     </form>
                     
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -22405,7 +23160,36 @@ ${shopsMap[link.shopId]}
                         document.getElementById('cancel-edit-purchase-btn').addEventListener('click', closeEditPurchaseModal);
                         document.getElementById('close-edit-purchase-modal').addEventListener('click', closeEditPurchaseModal);
                     </script>
-                    <script>
+                    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
+    <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -23205,7 +23989,7 @@ ${shopsMap[link.shopId]}
             <!-- 标题区 -->
             <div class="border-b border-gray-300 px-6 py-4 flex justify-between items-center">
                 <h3 id="shop-modal-title" class="text-lg font-semibold text-gray-800">添加店铺</h3>
-                <button class="close-modal text-gray-500 hover:text-gray-700 transition-colors">
+                <button class="close-modal text-gray-500 hover:text-gray-700 transition-colors" onclick="closeShopModal()">
                     <i class="fa fa-times"></i>
                 </button>
             </div>
@@ -23241,7 +24025,7 @@ ${shopsMap[link.shopId]}
             
             <!-- 底部操作区 -->
             <div class="px-6 pb-6 flex justify-center space-x-4">
-                <button type="button" class="btn btn-secondary close-modal px-6 py-2">取消</button>
+                <button type="button" class="btn btn-secondary close-modal px-6 py-2" onclick="closeShopModal()">取消</button>
                 <button type="submit" form="add-shop-form" class="btn btn-primary px-6 py-2">保存</button>
             </div>
         </div>
@@ -23263,7 +24047,36 @@ ${shopsMap[link.shopId]}
         </div>
     </div>
 
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -32156,12 +32969,6 @@ ${shopsMap[link.shopId]}
                     setTimeout(() => {
                         modal.classList.add('hidden');
                         
-                        // 重置样式，确保下次打开时动画正常
-                        backdrop.classList.remove('bg-black/0', 'backdrop-blur-0');
-                        backdrop.classList.add('bg-black/30', 'backdrop-blur-md');
-                        modalContent.classList.remove('scale-95', 'opacity-0');
-                        modalContent.classList.add('scale-100', 'opacity-100');
-                        
                         // 对于规格成本表单，在模态框完全隐藏后再清空引用成本项目
                         if (modalId === 'add-sku-modal') {
                             document.getElementById('referenced-costs-container').innerHTML = '';
@@ -34964,7 +35771,36 @@ ${shopsMap[link.shopId]}
         </div>
     </div>
 
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -35056,7 +35892,36 @@ ${shopsMap[link.shopId]}
 
     </script>
 
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -35176,7 +36041,36 @@ ${shopsMap[link.shopId]}
         });
     </script>
 
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -39359,7 +40253,36 @@ ${shopsMap[link.shopId]}
     </script>
     
     <!-- 明细表单功能脚本 -->
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -40546,7 +41469,36 @@ ${shopsMap[link.shopId]}
     </script>
 </main>
 
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
@@ -41017,7 +41969,36 @@ ${shopsMap[link.shopId]}
             renderNoteLists();
         });
     </script>
+    <style type="text/tailwindcss">
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        .animate-fadeIn {
+            animation: fadeIn 0.5s ease-in-out forwards;
+        }
+    </style>
     <script>
+    // 关闭店铺模态框函数
+    function closeShopModal() {
+        const modal = document.getElementById('add-shop-modal');
+        const backdrop = document.getElementById('shop-modal-backdrop');
+        const modalContent = document.getElementById('shop-modal-content');
+        
+        // 添加关闭动画
+        backdrop.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        backdrop.style.backdropFilter = 'blur(0px)';
+        modalContent.style.transform = 'scale(0.95)';
+        modalContent.style.opacity = '0';
+        
+        // 动画结束后隐藏模态框
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            // 重置表单
+            document.getElementById('add-shop-form').reset();
+        }, 300);
+    }
+
     // 删除店铺
     function deleteShop(shopId) {
         // 查找店铺名称
