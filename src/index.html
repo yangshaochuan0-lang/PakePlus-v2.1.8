@@ -2955,157 +2955,216 @@
 
         <!-- Settings Page -->
         <div id="settings" class="hidden animate-fadeIn">
-            <div class="max-w-4xl mx-auto">
-                <div class="bg-white rounded-lg shadow-lg p-8">
-                    <div class="flex justify-between items-center mb-8">
-                        <h2 class="text-3xl font-bold text-gray-800">账户设置</h2>
-                        <div class="text-sm text-gray-500">
-                            当前用户: <span id="settings-current-user" class="font-semibold text-primary"></span>
-                        </div>
+            <div class="flex h-screen">
+                <!-- Left Sidebar Navigation -->
+                <div class="w-64 bg-gray-100 border-r border-gray-200 rounded-xl m-4 shadow-md">
+                    <div class="p-6 text-center">
+                        <h2 class="text-2xl font-bold text-gray-800">基本设置</h2>
                     </div>
-                    
-                    <div class="mb-8">
-                        <div class="flex border-b border-gray-300">
-                            <button class="settings-tab px-6 py-3 text-lg font-medium text-primary border-b-2 border-primary" data-settings-tab="account">账号设置</button>
-                            <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="password">修改密码</button>
-                            <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="security">密保设置</button>
-                            <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="register">账户注册</button>
-                        </div>
-                    </div>
-                    
-                    <!-- Account Settings -->
-                    <div id="account-settings" class="settings-tab-content">
-                        <div class="max-w-md">
-                            <div class="space-y-6">
-                                <div>
-                                    <label class="block text-sm font-medium text-gray-700 mb-2">当前账号</label>
-                                    <input type="text" id="current-username" class="input-field bg-gray-100" readonly="">
-                                </div>
-                                <div>
-                                    <label for="new-username" class="block text-sm font-medium text-gray-700 mb-2">新账号</label>
-                                    <input type="text" id="new-username" class="input-field" placeholder="请输入新账号（4-20位字母或数字）">
-                                    <p class="mt-1 text-sm text-gray-500">账号只能包含字母和数字，长度为4-20位</p>
-                                </div>
-                                <div class="pt-4">
-                                    <button onclick="updateUsername()" class="btn btn-primary">保存修改</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Password Settings -->
-                    <div id="password-settings" class="settings-tab-content hidden">
-                        <div class="max-w-md">
-                            <div class="space-y-6">
-                                <div>
-                                    <label for="current-password" class="block text-sm font-medium text-gray-700 mb-2">当前密码</label>
-                                    <input type="password" id="current-password" class="input-field" placeholder="请输入当前密码">
-                                </div>
-                                <div>
-                                    <label for="new-password" class="block text-sm font-medium text-gray-700 mb-2">新密码</label>
-                                    <input type="password" id="new-password" class="input-field" placeholder="请输入新密码（至少6位）">
-                                    <p class="mt-1 text-sm text-gray-500">密码长度至少为6位</p>
-                                </div>
-                                <div>
-                                    <label for="confirm-new-password" class="block text-sm font-medium text-gray-700 mb-2">确认新密码</label>
-                                    <input type="password" id="confirm-new-password" class="input-field" placeholder="请再次输入新密码">
-                                </div>
-                                <div class="pt-4">
-                                    <button onclick="updatePassword()" class="btn btn-primary">保存修改</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Security Settings -->
-                    <div id="security-settings" class="settings-tab-content hidden">
-                        <div class="max-w-md">
-                            <div class="space-y-6">
-                                <div>
-                                    <label for="security-email" class="block text-sm font-medium text-gray-700 mb-2">密保邮箱</label>
-                                    <input type="email" id="security-email" class="input-field" placeholder="请输入邮箱地址">
-                                    <p class="mt-1 text-sm text-gray-500">用于找回密码</p>
-                                </div>
-                                <div>
-                                    <label for="security-phone" class="block text-sm font-medium text-gray-700 mb-2">密保手机</label>
-                                    <input type="tel" id="security-phone" class="input-field" placeholder="请输入手机号码">
-                                    <p class="mt-1 text-sm text-gray-500">用于找回密码</p>
-                                </div>
-                                <div class="pt-4">
-                                    <button onclick="updateSecurityInfo()" class="btn btn-primary">保存设置</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Register Settings -->
-                    <div id="register-settings" class="settings-tab-content hidden">
-                        <div class="max-w-md">
-                            <div class="space-y-6">
-                                <div>
-                                    <label for="settings-register-username" class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
-                                    <input type="text" id="settings-register-username" class="input-field" placeholder="请输入用户名（4-20位字母或数字）">
-                                    <p class="mt-1 text-sm text-gray-500">用户名只能包含字母和数字，长度为4-20位</p>
-                                </div>
-                                <div>
-                                    <label for="settings-register-password" class="block text-sm font-medium text-gray-700 mb-2">密码</label>
-                                    <input type="password" id="settings-register-password" class="input-field" placeholder="请输入密码（至少6位）">
-                                    <p class="mt-1 text-sm text-gray-500">密码长度至少为6位</p>
-                                </div>
-                                <div>
-                                    <label for="settings-register-confirm-password" class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
-                                    <input type="password" id="settings-register-confirm-password" class="input-field" placeholder="请再次输入密码">
-                                </div>
-                                <div class="pt-4">
-                                    <button onclick="registerAccount()" class="btn btn-primary">注册账户</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <nav class="mt-5 px-4 pb-4">
+                        <a href="#" class="flex items-center justify-center py-3 text-gray-700 bg-white rounded-lg mx-2 shadow-sm" data-settings-nav="user-info-main">
+                            <i class="fa fa-id-card-o text-lg mr-3 text-primary"></i>
+                            <span class="font-bold text-black">用户信息</span>
+                        </a>
+                        <a href="#" class="flex items-center justify-center py-3 text-gray-600 hover:bg-white hover:rounded-lg mx-2 mt-2 transition-all duration-200" data-settings-nav="account-settings-main">
+                            <i class="fa fa-user-circle text-lg mr-3"></i>
+                            <span class="font-bold text-black">账号设置</span>
+                        </a>
+                        <a href="#" class="flex items-center justify-center py-3 text-gray-600 hover:bg-white hover:rounded-lg mx-2 mt-2 transition-all duration-200" data-settings-nav="account-management-main">
+                            <i class="fa fa-users text-lg mr-3"></i>
+                            <span class="font-bold text-black">账户管理</span>
+                        </a>
+                        <a href="#" class="flex items-center justify-center py-3 text-gray-600 hover:bg-white hover:rounded-lg mx-2 mt-2 transition-all duration-200" data-settings-nav="about-software">
+                            <i class="fa fa-info-circle text-lg mr-3"></i>
+                            <span class="font-bold text-black">关于软件</span>
+                        </a>
+                    </nav>
                 </div>
-                
-                <!-- User Info and Management Section -->
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-                    <!-- User Info Card -->
-                    <div class="bg-white rounded-lg shadow-lg p-8">
-                        <h3 class="text-xl font-semibold text-gray-800 mb-4">用户信息</h3>
-                        <div class="space-y-4">
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">账号:</span>
-                                <span id="user-info-username" class="font-medium"></span>
+
+                <!-- Main Content Area -->
+                <div class="flex-1 overflow-y-auto p-8">
+                    <!-- Account Settings Main Section -->
+                    <div id="account-settings-main" class="settings-nav-content hidden">
+                        <div class="max-w-4xl">
+                            <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col min-h-[300px]">
+                                <div class="flex justify-between items-center mb-8">
+                                    <h2 class="text-2xl font-bold text-gray-800">账户设置</h2>
+                                    <div class="text-sm text-gray-500">
+                                        当前用户: <span id="settings-current-user" class="font-semibold text-primary"></span>
+                                    </div>
+                                </div>
+                                
+                                <div class="mb-8">
+                                    <div class="flex border-b border-gray-300">
+                                        <button class="settings-tab px-6 py-3 text-lg font-medium text-primary border-b-2 border-primary" data-settings-tab="account">账号设置</button>
+                                        <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="password">修改密码</button>
+                                        <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="security">密保设置</button>
+                                        <button class="settings-tab px-6 py-3 text-lg font-medium text-gray-500 hover:text-primary" data-settings-tab="register">账户注册</button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Account Settings -->
+                                <div id="account-settings" class="settings-tab-content">
+                                    <div class="max-w-md">
+                                        <div class="space-y-6">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">当前账号</label>
+                                                <input type="text" id="current-username" class="input-field bg-gray-100" readonly="">
+                                            </div>
+                                            <div>
+                                                <label for="new-username" class="block text-sm font-medium text-gray-700 mb-2">新账号</label>
+                                                <input type="text" id="new-username" class="input-field" placeholder="请输入新账号（4-20位字母或数字）">
+                                                <p class="mt-1 text-sm text-gray-500">账号只能包含字母和数字，长度为4-20位</p>
+                                            </div>
+                                            <div class="pt-4">
+                                                <button onclick="updateUsername()" class="btn btn-primary">保存修改</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Password Settings -->
+                                <div id="password-settings" class="settings-tab-content hidden">
+                                    <div class="max-w-md">
+                                        <div class="space-y-6">
+                                            <div>
+                                                <label for="current-password" class="block text-sm font-medium text-gray-700 mb-2">当前密码</label>
+                                                <input type="password" id="current-password" class="input-field" placeholder="请输入当前密码">
+                                            </div>
+                                            <div>
+                                                <label for="new-password" class="block text-sm font-medium text-gray-700 mb-2">新密码</label>
+                                                <input type="password" id="new-password" class="input-field" placeholder="请输入新密码（至少6位）">
+                                                <p class="mt-1 text-sm text-gray-500">密码长度至少为6位</p>
+                                            </div>
+                                            <div>
+                                                <label for="confirm-new-password" class="block text-sm font-medium text-gray-700 mb-2">确认新密码</label>
+                                                <input type="password" id="confirm-new-password" class="input-field" placeholder="请再次输入新密码">
+                                            </div>
+                                            <div class="pt-4">
+                                                <button onclick="updatePassword()" class="btn btn-primary">保存修改</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Security Settings -->
+                                <div id="security-settings" class="settings-tab-content hidden">
+                                    <div class="max-w-md">
+                                        <div class="space-y-6">
+                                            <div>
+                                                <label for="security-email" class="block text-sm font-medium text-gray-700 mb-2">密保邮箱</label>
+                                                <input type="email" id="security-email" class="input-field" placeholder="请输入邮箱地址">
+                                                <p class="mt-1 text-sm text-gray-500">用于找回密码</p>
+                                            </div>
+                                            <div>
+                                                <label for="security-phone" class="block text-sm font-medium text-gray-700 mb-2">密保手机</label>
+                                                <input type="tel" id="security-phone" class="input-field" placeholder="请输入手机号码">
+                                                <p class="mt-1 text-sm text-gray-500">用于找回密码</p>
+                                            </div>
+                                            <div class="pt-4">
+                                                <button onclick="updateSecurityInfo()" class="btn btn-primary">保存设置</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Register Settings -->
+                                <div id="register-settings" class="settings-tab-content hidden">
+                                    <div class="max-w-md">
+                                        <div class="space-y-6">
+                                            <div>
+                                                <label for="settings-register-username" class="block text-sm font-medium text-gray-700 mb-2">用户名</label>
+                                                <input type="text" id="settings-register-username" class="input-field" placeholder="请输入用户名（4-20位字母或数字）">
+                                                <p class="mt-1 text-sm text-gray-500">用户名只能包含字母和数字，长度为4-20位</p>
+                                            </div>
+                                            <div>
+                                                <label for="settings-register-password" class="block text-sm font-medium text-gray-700 mb-2">密码</label>
+                                                <input type="password" id="settings-register-password" class="input-field" placeholder="请输入密码（至少6位）">
+                                                <p class="mt-1 text-sm text-gray-500">密码长度至少为6位</p>
+                                            </div>
+                                            <div>
+                                                <label for="settings-register-confirm-password" class="block text-sm font-medium text-gray-700 mb-2">确认密码</label>
+                                                <input type="password" id="settings-register-confirm-password" class="input-field" placeholder="请再次输入密码">
+                                            </div>
+                                            <div class="pt-4">
+                                                <button onclick="registerAccount()" class="btn btn-primary">注册账户</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="flex justify-between">
-                                <span class="text-gray-600">创建时间:</span>
-                                <span id="user-info-created-at" class="font-medium"></span>
-                            </div>
-                            <div class="pt-4">
-                                <button id="logout-btn" onclick="handleLogout()" class="btn btn-danger">退出登录</button>
+                        </div>
+                    </div>
+                    
+                    <!-- User Info Main Section -->
+                    <div id="user-info-main" class="settings-nav-content">
+                        <div class="max-w-4xl">
+                            <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col min-h-[300px]">
+                                <h3 class="text-2xl font-semibold text-gray-800 mb-6">用户信息</h3>
+                                <div class="space-y-6">
+                                    <div class="flex justify-between items-center pb-4 border-b border-gray-200">
+                                        <span class="text-gray-600 text-lg">账号:</span>
+                                        <span id="user-info-username" class="font-medium text-lg"></span>
+                                    </div>
+                                    <div class="flex justify-between items-center pb-4 border-b border-gray-200">
+                                        <span class="text-gray-600 text-lg">创建时间:</span>
+                                        <span id="user-info-created-at" class="font-medium text-lg"></span>
+                                    </div>
+                                    <div class="pt-4">
+                                        <button id="logout-btn" onclick="handleLogout()" class="btn btn-danger">退出登录</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- All Users Management Card -->
-                    <div class="bg-white rounded-lg shadow-lg p-8">
-                    <div class="mb-4">
-                        <h3 class="text-xl font-semibold text-gray-800">账户管理</h3>
+                    <!-- Account Management Main Section -->
+                    <div id="account-management-main" class="settings-nav-content hidden">
+                        <div class="max-w-4xl">
+                            <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col min-h-[300px]">
+                                <div class="mb-6">
+                                    <h3 class="text-2xl font-semibold text-gray-800">账户管理</h3>
+                                </div>
+                                <div class="overflow-x-auto">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="user-list-body" class="bg-white divide-y divide-gray-200">
+                                            <!-- User list will be dynamically inserted here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <div id="user-list-empty" class="text-center py-8 text-gray-500 hidden">
+                                    暂无其他账户。
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-50">
-                                <tr>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">用户名</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">创建时间</th>
-                                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="user-list-body" class="bg-white divide-y divide-gray-200">
-                                <!-- User list will be dynamically inserted here -->
-                            </tbody>
-                        </table>
-                    </div>
-                    <div id="user-list-empty" class="text-center py-8 text-gray-500 hidden">
-                        暂无其他账户。
-                    </div>
+
+                    <!-- About Software Section -->
+                    <div id="about-software" class="settings-nav-content hidden">
+                        <div class="max-w-4xl">
+                            <div class="bg-white rounded-lg shadow-lg p-8 flex flex-col min-h-[300px]">
+                                <div class="mb-6">
+                                    <h3 class="text-2xl font-semibold text-gray-800">关于软件</h3>
+                                </div>
+                                <div class="space-y-6">
+                                    <div>
+                                        <p class="text-lg text-gray-700 font-bold">版本号：V1.6.1</p>
+                                    </div>
+                                </div>
+                                <div class="mt-auto pt-6">
+                                    <hr class="border-gray-200 mb-6">
+                                    <p class="text-gray-600 text-center" style="font-size: 12px;">四艺堂公司 版权所有</p>
+                                    <p class="text-gray-600 text-center" style="font-size: 12px;">Copyright ©️ 2025-2026 SiYiTang GongFang. All Rights Reserved.</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -42300,4 +42359,56 @@ ${shopsMap[link.shopId]}
         }
     };
     </script>
+    <script>
+    // 左侧导航切换功能
+    document.addEventListener('DOMContentLoaded', function() {
+        // 获取所有导航链接和内容区域
+        const navLinks = document.querySelectorAll('[data-settings-nav]');
+        const contentAreas = document.querySelectorAll('.settings-nav-content');
+        
+        // 为每个导航链接添加点击事件
+        navLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // 获取目标内容区域的ID
+                const targetId = this.getAttribute('data-settings-nav');
+                
+                // 隐藏所有内容区域
+                contentAreas.forEach(area => {
+                    area.classList.add('hidden');
+                });
+                
+                // 显示目标内容区域
+                const targetArea = document.getElementById(targetId);
+                if (targetArea) {
+                    targetArea.classList.remove('hidden');
+                }
+                
+                // 更新导航链接样式
+                navLinks.forEach(navLink => {
+                    navLink.classList.remove('bg-white', 'border-l-4', 'border-primary', 'text-gray-700');
+                    navLink.classList.add('text-gray-600', 'hover:bg-white', 'hover:border-l-4', 'hover:border-primary');
+                    
+                    // 重置图标颜色
+                    const icon = navLink.querySelector('i');
+                    if (icon) {
+                        icon.classList.remove('text-primary');
+                    }
+                });
+                
+                // 设置当前活动链接样式
+                this.classList.remove('text-gray-600', 'hover:bg-white', 'hover:border-l-4', 'hover:border-primary');
+                this.classList.add('bg-white', 'border-l-4', 'border-primary', 'text-gray-700', 'rounded-lg');
+                
+                // 设置当前活动链接的图标颜色
+                const activeIcon = this.querySelector('i');
+                if (activeIcon) {
+                    activeIcon.classList.add('text-primary');
+                }
+            });
+        });
+    });
+    </script>
+
 </body></html>
