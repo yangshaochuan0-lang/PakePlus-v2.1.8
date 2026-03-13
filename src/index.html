@@ -3155,7 +3155,7 @@
                                 </div>
                                 <div class="space-y-6">
                                     <div>
-                                        <p class="text-lg text-gray-700 font-bold">版本：V1.6.2</p>
+                                        <p class="text-lg text-gray-700 font-bold">版本：V1.6.3</p>
                                     </div>
                                 </div>
                                 <div class="mt-auto pt-6">
@@ -14388,7 +14388,13 @@ ${shopsMap[link.shopId]}
                         <button id="platform-settings" class="w-10 h-10 flex items-center justify-center rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 border-2 border-gray-200 text-gray-600 shadow-sm hover:from-gray-200 hover:to-gray-300 hover:shadow-md transition-all duration-200" title="平台管理">
                             <i class="fa fa-cog"></i>
                         </button>
-                        <button id="add-shop" class="btn btn-primary">
+                        <button id="export-shops-excel" class="btn btn-success text-sm mr-2" onclick="exportShopsToExcel()">
+                            <i class="fa fa-file-excel-o"></i> 导出Excel
+                        </button>
+                        <button id="import-shops-excel" class="btn btn-secondary text-sm ml-2" onclick="triggerImportShopsExcel()">
+                            <i class="fa fa-upload"></i> 导入Excel
+                        </button>
+                        <button id="add-shop" class="btn btn-primary mr-2 text-sm">
                             <i class="fa fa-plus"></i> 添加店铺
                         </button>
                     </div>
@@ -26191,6 +26197,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -27628,6 +27832,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -28952,6 +29354,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -30123,6 +30723,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -32518,6 +33316,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -34272,6 +35268,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -35083,6 +36277,204 @@ ${shopsMap[link.shopId]}
             return '未分类';
         }
         
+        function exportShopsToExcel() {
+            try {
+                // 创建一个工作簿
+                const wb = XLSX.utils.book_new();
+                
+                // 准备数据 - 一个店铺一列
+                // 首先确定最大行数，即商品最多的店铺的商品数 + 2（店铺名称行和平台信息行）
+                const maxRows = Math.max(...shops.map(shop => shop.productIds.length), 0) + 2;
+                
+                // 创建二维数组来存储数据
+                const data = [];
+                
+                // 为每一行创建数据
+                for (let i = 0; i < maxRows; i++) {
+                    const row = [];
+                    
+                    // 为每个店铺创建一列数据
+                    shops.forEach(shop => {
+                        if (i === 0) {
+                            // 第一行是店铺名称
+                            row.push(shop.name);
+                        } else if (i === 1) {
+                            // 第二行是平台信息
+                            row.push(shop.platform || '未知平台');
+                        } else if (i - 2 < shop.productIds.length) {
+                            // 第三行及以下是商品ID
+                            row.push(shop.productIds[i - 2]);
+                        } else {
+                            // 超出商品数量范围，留空
+                            row.push('');
+                        }
+                    });
+                    
+                    data.push(row);
+                }
+                
+                // 创建工作表
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                
+                // 调整列宽
+                const colWidths = shops.map(() => ({ wch: 20 })); // 每个店铺一列，列宽20
+                ws['!cols'] = colWidths;
+                
+                // 将工作表添加到工作簿
+                XLSX.utils.book_append_sheet(wb, ws, '店铺商品信息');
+                
+                // 生成Excel文件并下载
+                const fileName = `店铺商品信息_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.xlsx`;
+                XLSX.writeFile(wb, fileName);
+                
+                // 显示成功提示
+                showToast('Excel导出成功', 'success');
+            } catch (error) {
+                console.error('导出Excel失败:', error);
+                showToast('导出Excel失败: ' + error.message, 'error');
+            }
+        }
+
+        // 触发导入Excel文件选择
+        function triggerImportShopsExcel() {
+            // 打开导入Excel模态框
+            document.getElementById('import-shops-modal').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('import-shops-modal').classList.remove('bg-black/0', 'backdrop-blur-0');
+                document.getElementById('import-shops-modal').classList.add('bg-black/30', 'backdrop-blur-md');
+                document.getElementById('import-shops-modal-content').classList.remove('scale-95', 'opacity-0');
+                document.getElementById('import-shops-modal-content').classList.add('scale-100', 'opacity-100');
+                
+                // 重置文件输入框，确保可以再次选择同一文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+            }, 10);
+        }
+
+        // 从Excel导入店铺信息
+        function importShopsFromExcel() {
+            try {
+                // 获取上传的文件
+                const fileInput = document.getElementById('import-shops-file-input');
+                const file = fileInput.files[0];
+                
+                if (!file) {
+                    return;
+                }
+                
+                // 检查文件类型
+                if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+                    showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+                    return;
+                }
+                
+                // 显示加载中提示
+                showToast('正在解析文件，请稍候...', 'info');
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        
+                        // 获取第一个工作表
+                        const firstSheetName = workbook.SheetNames[0];
+                        const worksheet = workbook.Sheets[firstSheetName];
+                        
+                        // 将工作表转换为JSON
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                        
+                        if (jsonData.length < 2) {
+                            throw new Error('Excel文件内容为空或格式不正确');
+                        }
+                        
+                        // 解析数据
+                        const importedShops = [];
+                        let successCount = 0;
+                        let errorCount = 0;
+                        
+                        // 遍历每一列数据
+                        const numCols = jsonData[0].length;
+                        for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                            try {
+                                // 获取店铺名称（第一行）
+                                const shopName = jsonData[0][colIndex];
+                                if (!shopName || shopName.toString().trim() === '') {
+                                    continue; // 跳过空列
+                                }
+                                
+                                // 获取平台信息（第二行）
+                                const platform = jsonData[1] && jsonData[1][colIndex] ? 
+                                    jsonData[1][colIndex].toString().trim() : '未知平台';
+                                
+                                // 收集商品ID（第三行及以下）
+                                const productIds = [];
+                                for (let rowIndex = 2; rowIndex < jsonData.length; rowIndex++) {
+                                    const cellValue = jsonData[rowIndex] && jsonData[rowIndex][colIndex];
+                                    if (cellValue && cellValue.toString().trim() !== '') {
+                                        productIds.push(cellValue.toString().trim());
+                                    }
+                                }
+                                
+                                // 检查是否已存在同名店铺
+                                const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                                
+                                if (existingShopIndex !== -1) {
+                                    // 更新现有店铺
+                                    shops[existingShopIndex].platform = platform;
+                                    shops[existingShopIndex].productIds = productIds;
+                                } else {
+                                    // 创建新店铺
+                                    const newShop = {
+                                        id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                        name: shopName.toString().trim(),
+                                        platform: platform,
+                                        productIds: productIds,
+                                        createdAt: new Date().toISOString()
+                                    };
+                                    shops.push(newShop);
+                                }
+                                
+                                successCount++;
+                                
+                            } catch (err) {
+                                console.error(`解析第${colIndex + 1}列数据时发生错误:`, err);
+                                errorCount++;
+                            }
+                        }
+                        
+                        // 保存到本地存储
+                        localStorage.setItem('shops', JSON.stringify(shops));
+                        
+                        // 更新页面显示
+                        renderShops();
+                        
+                        // 显示导入结果
+                        showToast(`成功导入 ${successCount} 个店铺信息${errorCount > 0 ? `，${errorCount} 个店铺导入失败` : ''}`, 'success');
+                        
+                    } catch (error) {
+                        console.error('解析Excel文件时发生错误:', error);
+                        showToast(`解析文件失败: ${error.message}`, 'error');
+                    }
+                };
+                
+                reader.onerror = function() {
+                    showToast('读取文件失败，请重试', 'error');
+                };
+                
+                reader.readAsArrayBuffer(file);
+                
+            } catch (error) {
+                console.error('导入Excel时发生错误:', error);
+                showToast('导入失败，请重试', 'error');
+            } finally {
+                // 重置文件输入，以便可以再次选择同一个文件
+                document.getElementById('import-shops-file-input').value = '';
+            }
+        }
+
         // 回收站相关函数
         function bindRecycleBinEvents() {
             const recycleBinBtn = document.getElementById('recycle-bin-btn');
@@ -42762,6 +44154,435 @@ ${shopsMap[link.shopId]}
             });
         });
     });
+    </script>
+
+    <!-- Import Shops Modal -->
+    <div id="import-shops-modal" class="fixed inset-0 bg-black/0 backdrop-blur-0 flex items-center justify-center z-50 hidden transition-all duration-300 ease-out">
+        <div id="import-shops-modal-content" class="bg-white/90 backdrop-blur-md rounded-lg shadow-lg w-full max-w-5xl max-h-[90vh] overflow-y-auto transform scale-95 opacity-0 transition-all duration-300 ease-out hover:shadow-xl">
+            <div class="p-4">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-semibold text-gray-800">导入店铺Excel</h3>
+                    <button id="close-import-shops-modal" class="text-gray-400 hover:text-gray-600">
+                        <i class="fa fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">选择Excel文件</label>
+                    <div class="flex items-center space-x-2">
+                        <!-- 美化的文件输入框 -->
+                        <div class="relative flex-1">
+                            <input type="file" id="import-shops-file-input" accept=".xlsx, .xls" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" onchange="handleShopsFileSelect(event)">
+                            <div class="flex items-center justify-between px-4 py-2 border border-gray-300 rounded-md bg-white h-10">
+                                <span id="shops-file-name-display" class="text-sm text-gray-600 truncate flex-1">未选择文件</span>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-xs bg-primary/10 text-primary px-2 py-1 rounded">.xlsx, .xls</span>
+                                    <button id="clear-shops-file-btn" class="text-gray-400 hover:text-gray-600 transition-colors duration-200 hidden">
+                                        <i class="fa fa-times-circle"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <button id="start-shops-import" class="btn btn-primary h-10 px-4">
+                            <i class="fa fa-upload"></i> 开始导入
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1">支持 .xlsx 和 .xls 格式，请确保文件第一行为店铺名称，第二行为平台信息，第三行及以下为商品ID</p>
+                </div>
+                
+                <!-- Loading State -->
+                <div id="shops-import-loading" class="hidden mb-6">
+                    <div class="flex items-center justify-center py-4">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                        <span class="ml-3 text-gray-600">正在解析文件...</span>
+                    </div>
+                </div>
+
+                <!-- Preview Section -->
+                <div id="shops-import-preview-section" class="mb-6 hidden">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">数据预览</h4>
+                    <div id="shops-import-preview" class="max-h-60 overflow-y-auto border border-gray-200 rounded-lg">
+                        <!-- Preview table will be inserted here -->
+                    </div>
+                    <div id="shops-import-stats" class="mt-2">
+                        <!-- Stats will be inserted here -->
+                    </div>
+                </div>
+
+                <!-- Import Mode Selection -->
+                <div id="shops-import-mode-section" class="mb-6 hidden">
+                    <h4 class="text-md font-medium text-gray-700 mb-3">导入模式</h4>
+                    <div class="space-y-3">
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="shops-import-mode" value="merge" checked="" class="text-primary focus:ring-primary">
+                            <span class="text-sm text-gray-700">合并模式：新增不存在的店铺，更新已存在的店铺</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="shops-import-mode" value="insert" class="text-primary focus:ring-primary">
+                            <span class="text-sm text-gray-700">仅新增：只添加不存在的店铺，跳过已存在的</span>
+                        </label>
+                        <label class="flex items-center space-x-2">
+                            <input type="radio" name="shops-import-mode" value="update" class="text-primary focus:ring-primary">
+                            <span class="text-sm text-gray-700">仅更新：只更新已存在的店铺，跳过不存在的</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Confirmation Section -->
+                <div id="shops-import-confirm-section" class="flex justify-end space-x-3 hidden">
+                    <button id="cancel-shops-import" class="btn btn-secondary">取消</button>
+                    <button id="import-shops-confirm-btn" class="btn btn-primary">
+                        <i class="fa fa-check"></i> 确认导入
+                    </button>
+                </div>
+                
+                <!-- Hidden field to store import data -->
+                <input type="hidden" id="shops-import-data">
+            </div>
+        </div>
+    </div>
+
+    <script>
+    // 店铺导入相关功能
+    let shopsImportData = null;
+    let shopsImportFile = null;
+
+    // 初始化店铺导入模态框事件
+    document.addEventListener('DOMContentLoaded', function() {
+        // 关闭模态框
+        document.getElementById('close-import-shops-modal').addEventListener('click', closeImportShopsModal);
+        
+        // 文件选择
+        document.getElementById('import-shops-file-input').addEventListener('change', handleShopsFileSelect);
+        
+        // 清除文件
+        document.getElementById('clear-shops-file-btn').addEventListener('click', clearShopsFile);
+        
+        // 开始导入
+        document.getElementById('start-shops-import').addEventListener('click', startShopsImport);
+        
+        // 取消导入
+        document.getElementById('cancel-shops-import').addEventListener('click', resetShopsImportModal);
+        
+        // 确认导入
+        document.getElementById('import-shops-confirm-btn').addEventListener('click', confirmShopsImport);
+    });
+
+    // 关闭店铺导入模态框
+    function closeImportShopsModal() {
+        const modal = document.getElementById('import-shops-modal');
+        const modalContent = document.getElementById('import-shops-modal-content');
+        
+        modal.classList.remove('bg-black/30', 'backdrop-blur-md');
+        modal.classList.add('bg-black/0', 'backdrop-blur-0');
+        modalContent.classList.remove('scale-100', 'opacity-100');
+        modalContent.classList.add('scale-95', 'opacity-0');
+        
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            resetShopsImportModal();
+        }, 300);
+    }
+
+    // 重置店铺导入模态框
+    function resetShopsImportModal() {
+        // 重置文件
+        document.getElementById('import-shops-file-input').value = '';
+        document.getElementById('shops-file-name-display').textContent = '未选择文件';
+        document.getElementById('clear-shops-file-btn').classList.add('hidden');
+        
+        // 隐藏所有步骤
+        document.getElementById('shops-import-loading').classList.add('hidden');
+        document.getElementById('shops-import-preview-section').classList.add('hidden');
+        document.getElementById('shops-import-mode-section').classList.add('hidden');
+        document.getElementById('shops-import-confirm-section').classList.add('hidden');
+        
+        // 清空数据
+        shopsImportData = null;
+        shopsImportFile = null;
+        document.getElementById('shops-import-data').value = '';
+    }
+
+    // 处理店铺文件选择
+    function handleShopsFileSelect(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // 检查文件类型
+        if (!file.name.toLowerCase().match(/\.(xlsx|xls)$/)) {
+            showToast('请选择Excel文件（.xlsx或.xls格式）', 'error');
+            // 重置文件输入框，确保可以再次选择文件
+            event.target.value = '';
+            return;
+        }
+        
+        shopsImportFile = file;
+        document.getElementById('shops-file-name-display').textContent = file.name;
+        document.getElementById('clear-shops-file-btn').classList.remove('hidden');
+        
+        // 为了更好的用户体验，添加文件选择成功的视觉反馈
+        const fileInputContainer = event.target.parentElement;
+        fileInputContainer.classList.add('border-green-500');
+        setTimeout(() => {
+            fileInputContainer.classList.remove('border-green-500');
+        }, 1000);
+    }
+
+    // 清除店铺文件
+    function clearShopsFile() {
+        document.getElementById('import-shops-file-input').value = '';
+        document.getElementById('shops-file-name-display').textContent = '未选择文件';
+        document.getElementById('clear-shops-file-btn').classList.add('hidden');
+        shopsImportFile = null;
+    }
+
+    // 开始店铺导入
+    function startShopsImport() {
+        if (!shopsImportFile) {
+            showToast('请先选择Excel文件', 'error');
+            return;
+        }
+        
+        // 显示加载状态
+        document.getElementById('shops-import-loading').classList.remove('hidden');
+        
+        // 解析Excel文件
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                
+                // 获取第一个工作表
+                const firstSheetName = workbook.SheetNames[0];
+                const worksheet = workbook.Sheets[firstSheetName];
+                
+                // 将工作表转换为JSON
+                shopsImportData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+                
+                if (shopsImportData.length < 2) {
+                    throw new Error('Excel文件内容为空或格式不正确');
+                }
+                
+                // 生成预览
+                generateShopsPreview(shopsImportData);
+                
+                // 存储数据
+                document.getElementById('shops-import-data').value = JSON.stringify(shopsImportData);
+                
+                // 隐藏加载状态，显示预览和模式选择
+                document.getElementById('shops-import-loading').classList.add('hidden');
+                document.getElementById('shops-import-preview-section').classList.remove('hidden');
+                document.getElementById('shops-import-mode-section').classList.remove('hidden');
+                document.getElementById('shops-import-confirm-section').classList.remove('hidden');
+                
+            } catch (error) {
+                console.error('解析Excel文件失败:', error);
+                showToast('解析文件失败: ' + error.message, 'error');
+                document.getElementById('shops-import-loading').classList.add('hidden');
+            }
+        };
+        
+        reader.onerror = function() {
+            showToast('读取文件失败，请重试', 'error');
+            document.getElementById('shops-import-loading').classList.add('hidden');
+        };
+        
+        reader.readAsArrayBuffer(shopsImportFile);
+    }
+
+    // 生成店铺数据预览
+    function generateShopsPreview(data) {
+        const previewContainer = document.getElementById('shops-import-preview');
+        const statsContainer = document.getElementById('shops-import-stats');
+        
+        // 清空容器
+        previewContainer.innerHTML = '';
+        statsContainer.innerHTML = '';
+        
+        // 创建表格
+        const table = document.createElement('table');
+        table.className = 'min-w-full divide-y divide-gray-200';
+        
+        // 限制预览行数
+        const maxRows = Math.min(data.length, 10);
+        
+        // 生成表头
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        headerRow.className = 'bg-gray-50';
+        
+        if (data.length > 0) {
+            const headers = data[0];
+            const maxCols = Math.min(headers.length, 5);
+            
+            for (let i = 0; i < maxCols; i++) {
+                const th = document.createElement('th');
+                th.className = 'px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = headers[i] || `列 ${i + 1}`;
+                headerRow.appendChild(th);
+            }
+            
+            if (headers.length > maxCols) {
+                const th = document.createElement('th');
+                th.className = 'px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider';
+                th.textContent = `... 还有 ${headers.length - maxCols} 列`;
+                headerRow.appendChild(th);
+            }
+        }
+        
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        
+        // 生成表体
+        const tbody = document.createElement('tbody');
+        tbody.className = 'bg-white divide-y divide-gray-200';
+        
+        for (let i = 1; i < maxRows; i++) {
+            const row = document.createElement('tr');
+            const rowData = data[i] || [];
+            const maxCols = Math.min(rowData.length, 5);
+            
+            for (let j = 0; j < maxCols; j++) {
+                const td = document.createElement('td');
+                td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500';
+                td.textContent = rowData[j] || '';
+                row.appendChild(td);
+            }
+            
+            if (rowData.length > maxCols) {
+                const td = document.createElement('td');
+                td.className = 'px-3 py-2 whitespace-nowrap text-sm text-gray-500';
+                td.textContent = `... 还有 ${rowData.length - maxCols} 列`;
+                row.appendChild(td);
+            }
+            
+            tbody.appendChild(row);
+        }
+        
+        table.appendChild(tbody);
+        previewContainer.appendChild(table);
+        
+        // 生成统计信息
+        const stats = document.createElement('div');
+        stats.className = 'text-sm text-gray-600';
+        stats.innerHTML = `
+            <div class="flex justify-between">
+                <span>总行数: ${data.length}</span>
+                <span>总列数: ${data[0] ? data[0].length : 0}</span>
+                <span>预计店铺数: ${data[0] ? data[0].length : 0}</span>
+            </div>
+        `;
+        statsContainer.appendChild(stats);
+    }
+
+    // 确认店铺导入
+    function confirmShopsImport() {
+        if (!shopsImportData) {
+            showToast('没有可导入的数据', 'error');
+            return;
+        }
+        
+        // 获取导入模式
+        const importMode = document.querySelector('input[name="shops-import-mode"]:checked').value;
+        
+        try {
+            // 解析数据
+            const importedShops = [];
+            let successCount = 0;
+            let errorCount = 0;
+            let skipCount = 0;
+            const errors = [];
+            
+            // 遍历每一列数据
+            const numCols = shopsImportData[0].length;
+            for (let colIndex = 0; colIndex < numCols; colIndex++) {
+                try {
+                    // 获取店铺名称（第一行）
+                    const shopName = shopsImportData[0][colIndex];
+                    if (!shopName || shopName.toString().trim() === '') {
+                        continue; // 跳过空列
+                    }
+                    
+                    // 获取平台信息（第二行）
+                    const platform = shopsImportData[1] && shopsImportData[1][colIndex] ? 
+                        shopsImportData[1][colIndex].toString().trim() : '未知平台';
+                    
+                    // 收集商品ID（第三行及以下）
+                    const productIds = [];
+                    for (let rowIndex = 2; rowIndex < shopsImportData.length; rowIndex++) {
+                        const cellValue = shopsImportData[rowIndex] && shopsImportData[rowIndex][colIndex];
+                        if (cellValue && cellValue.toString().trim() !== '') {
+                            productIds.push(cellValue.toString().trim());
+                        }
+                    }
+                    
+                    // 检查是否已存在同名店铺
+                    const existingShopIndex = shops.findIndex(s => s.name === shopName.toString().trim());
+                    
+                    if (existingShopIndex !== -1) {
+                        // 已存在同名店铺
+                        if (importMode === 'update' || importMode === 'merge') {
+                            // 更新现有店铺
+                            shops[existingShopIndex].platform = platform;
+                            shops[existingShopIndex].productIds = productIds;
+                            successCount++;
+                        } else {
+                            // 仅新增模式，跳过已有店铺
+                            skipCount++;
+                        }
+                    } else {
+                        // 不存在同名店铺
+                        if (importMode === 'insert' || importMode === 'merge') {
+                            // 创建新店铺
+                            const newShop = {
+                                id: `shop_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
+                                name: shopName.toString().trim(),
+                                platform: platform,
+                                productIds: productIds,
+                                createdAt: new Date().toISOString()
+                            };
+                            shops.push(newShop);
+                            successCount++;
+                        } else {
+                            // 仅更新模式，跳过新店铺
+                            skipCount++;
+                        }
+                    }
+                    
+                } catch (err) {
+                    errorCount++;
+                    errors.push(`列 ${colIndex + 1}: ${err.message}`);
+                }
+            }
+            
+            // 保存到本地存储
+            localStorage.setItem('shops', JSON.stringify(shops));
+            
+            // 更新店铺管理页面的显示
+            if (document.getElementById('shop-management')) {
+                renderShops();
+            }
+            
+            // 显示成功提示
+            let message = `成功导入 ${successCount} 个店铺`;
+            if (skipCount > 0) {
+                message += `，跳过 ${skipCount} 个店铺`;
+            }
+            if (errorCount > 0) {
+                message += `，${errorCount} 个错误`;
+            }
+            
+            showToast(message, 'success');
+            
+            // 关闭模态框
+            closeImportShopsModal();
+            
+        } catch (error) {
+            console.error('导入Excel失败:', error);
+            showToast('导入失败: ' + error.message, 'error');
+        }
+    }
     </script>
 
 </body></html>
