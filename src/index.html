@@ -3155,7 +3155,7 @@
                                 </div>
                                 <div class="space-y-6">
                                     <div>
-                                        <p class="text-lg text-gray-700 font-bold">版本号：V1.6.1</p>
+                                        <p class="text-lg text-gray-700 font-bold">版本：V1.6.2</p>
                                     </div>
                                 </div>
                                 <div class="mt-auto pt-6">
@@ -14814,25 +14814,35 @@ ${shopsMap[link.shopId]}
                     <div class="card mt-6">
                         <div class="flex items-center justify-between mb-4">
                             <h2 class="text-lg font-semibold text-gray-800">数据中心</h2>
-                            <div class="relative" id="recycle-bin-container">
-                                <button id="recycle-bin-btn" class="btn btn-secondary text-sm flex items-center justify-center" title="回收站">
-                                    <i class="fa fa-trash"></i>
-                                    <span id="recycle-bin-count" class="absolute -top-2 -right-2 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                            <div class="flex items-center space-x-2">
+                                <button id="batch-load-btn" class="btn btn-secondary text-sm flex items-center justify-center h-8 py-0" title="批量加载">
+                                    <i class="fa fa-download"></i>
+                                    <span>批量加载</span>
                                 </button>
-                                <div id="recycle-bin-list" class="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden">
-                                    <div class="p-3 border-b border-gray-300">
-                                        <h4 class="font-medium text-gray-700 flex items-center justify-between">
-                                            <span>回收站</span>
-                                            <button id="empty-recycle-bin" class="text-sm text-danger hover:text-danger/80" onclick="showEmptyRecycleBinConfirm()">清空</button>
-                                        </h4>
-                                        <p class="text-xs text-gray-500">点击项目可恢复，或选择彻底删除</p>
-                                    </div>
-                                    <div id="recycle-bin-items" class="max-h-60 overflow-y-auto">
-                                        <!-- Recycle bin items will be inserted here -->
-                                    </div>
-                                    <div id="recycle-bin-empty" class="p-4 text-center text-gray-500 text-sm hidden">
-                                        <i class="fa fa-info-circle mb-2"></i>
-                                        <p>回收站为空</p>
+                                <button id="batch-cancel-btn" class="btn btn-secondary text-sm flex items-center justify-center h-8 py-0 hidden" title="取消批量加载">
+                                    <i class="fa fa-times"></i>
+                                    <span>取消</span>
+                                </button>
+                                <div class="relative" id="recycle-bin-container">
+                                    <button id="recycle-bin-btn" class="btn btn-secondary text-sm flex items-center justify-center h-8 py-0" title="回收站">
+                                        <i class="fa fa-trash"></i>
+                                        <span id="recycle-bin-count" class="absolute -top-2 -right-2 bg-danger text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">0</span>
+                                    </button>
+                                    <div id="recycle-bin-list" class="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-md shadow-lg z-50 hidden">
+                                        <div class="p-3 border-b border-gray-300">
+                                            <h4 class="font-medium text-gray-700 flex items-center justify-between">
+                                                <span>回收站</span>
+                                                <button id="empty-recycle-bin" class="text-sm text-danger hover:text-danger/80" onclick="showEmptyRecycleBinConfirm()">清空</button>
+                                            </h4>
+                                            <p class="text-xs text-gray-500">点击项目可恢复，或选择彻底删除</p>
+                                        </div>
+                                        <div id="recycle-bin-items" class="max-h-60 overflow-y-auto">
+                                            <!-- Recycle bin items will be inserted here -->
+                                        </div>
+                                        <div id="recycle-bin-empty" class="p-4 text-center text-gray-500 text-sm hidden">
+                                            <i class="fa fa-info-circle mb-2"></i>
+                                            <p>回收站为空</p>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -24857,6 +24867,343 @@ ${shopsMap[link.shopId]}
                 searchSavedData();
             });
             
+            // 批量加载功能 - 深度修复版本
+            let batchSelectActive = false;
+            let selectedDataItems = new Set();
+            
+            // 批量加载按钮点击事件
+            document.getElementById('batch-load-btn').addEventListener('click', function() {
+                if (!batchSelectActive) {
+                    // 进入批量选择模式
+                    activateBatchSelection();
+                } else {
+                    // 执行批量加载
+                    if (selectedDataItems.size === 0) {
+                        showToast('提示', '请至少选择一条数据', 'warning');
+                        return;
+                    }
+                    
+                    // 显示加载中提示
+                    showToast('加载中', `正在加载 ${selectedDataItems.size} 条数据...`, 'info', 0);
+                    
+                    // 实际执行批量加载 - 合并数据版本
+                    const selectedIds = Array.from(selectedDataItems);
+                    let loadedData = [];
+                    let errorCount = 0;
+                    
+                    console.log('开始批量加载，选中的ID列表:', selectedIds);
+                    
+                    // 收集所有选中的数据
+                    selectedIds.forEach(id => {
+                        try {
+                            const data = savedData.find(item => item.id === id);
+                            if (data) {
+                                loadedData.push({
+                                    id: data.id,
+                                    name: data.name,
+                                    productData: JSON.parse(JSON.stringify(data.productData)),
+                                    excelData: JSON.parse(JSON.stringify(data.excelData)),
+                                    reportMonth: data.reportMonth
+                                });
+                                console.log(`成功收集数据项: ${data.name || id}`);
+                            } else {
+                                errorCount++;
+                                console.error(`未找到数据项ID: ${id}`);
+                            }
+                        } catch (error) {
+                            errorCount++;
+                            console.error(`读取数据项ID ${id} 时出错:`, error);
+                        }
+                    });
+                    
+                    if (loadedData.length === 0) {
+                        hideToast();
+                        deactivateBatchSelection();
+                        showToast('警告', '未找到有效数据，加载失败', 'warning');
+                        return;
+                    }
+                    
+                    // 合并所有数据
+                    console.log('开始合并数据，共', loadedData.length, '个数据集');
+                    
+                    // 创建合并后的数据数组
+                    let mergedProductData = [];
+                    let mergedExcelData = [];
+                    
+                    // 合并产品数据
+                    loadedData.forEach(data => {
+                        // 为每个产品添加来源标识
+                        const productsWithSource = data.productData.map(product => {
+                            // 为每个SKU添加来源标识和原始成本
+                            Object.values(product.skus).forEach(sku => {
+                                sku.originalCost = sku.cost;
+                                sku.isSavedData = true;
+                                sku.dataSource = data.name || data.id; // 添加数据源标识
+                            });
+                            
+                            return {
+                                ...product,
+                                isSavedData: true,
+                                savedUnitCost: product.unitCost,
+                                savedTotalCost: product.totalCost,
+                                dataSource: data.name || data.id // 添加数据源标识
+                            };
+                        });
+                        
+                        mergedProductData = mergedProductData.concat(productsWithSource);
+                        
+                        // 合并Excel数据
+                        if (data.excelData && Array.isArray(data.excelData)) {
+                            const excelDataWithSource = data.excelData.map(row => {
+                                return {
+                                    ...row,
+                                    dataSource: data.name || data.id // 添加数据源标识
+                                };
+                            });
+                            mergedExcelData = mergedExcelData.concat(excelDataWithSource);
+                        }
+                    });
+                    
+                    // 更新全局数据
+                    productData = mergedProductData;
+                    excelData = mergedExcelData;
+                    
+                    console.log('数据合并完成，合并后的产品数量:', mergedProductData.length);
+                    
+                    // 设置报表年月（使用第一个数据集的年月）
+                    if (loadedData[0] && loadedData[0].reportMonth) {
+                        document.getElementById('report-month').value = loadedData[0].reportMonth;
+                    }
+                    
+                    // 清零快递续重费
+                    document.getElementById('additional-shipping-fee').value = '';
+                    
+                    // 完成加载后处理
+                    setTimeout(() => {
+                        hideToast();
+                        deactivateBatchSelection();
+                        
+                        // 重新渲染结果
+                        renderResults();
+                        
+                        // 重新渲染图表和数据表格
+                        if (typeof renderCharts === 'function') {
+                            renderCharts();
+                        }
+                        
+                        if (typeof renderDataTable === 'function') {
+                            renderDataTable();
+                        }
+                        
+                        showToast('成功', `成功合并加载 ${loadedData.length} 个数据集，共 ${mergedProductData.length} 个产品`, 'success');
+                        console.log('批量加载合并完成');
+                    }, 500);
+                }
+            });
+            
+            // 激活批量选择模式
+            function activateBatchSelection() {
+                batchSelectActive = true;
+                selectedDataItems.clear();
+                
+                // 更新批量加载按钮状态
+                const batchBtn = document.getElementById('batch-load-btn');
+                batchBtn.classList.remove('btn-secondary');
+                batchBtn.classList.add('btn-primary', 'h-8', 'py-0');
+                batchBtn.innerHTML = '<i class="fa fa-check"></i><span>加载</span>';
+                
+                // 显示取消按钮
+                const cancelBtn = document.getElementById('batch-cancel-btn');
+                cancelBtn.classList.remove('hidden');
+                cancelBtn.onclick = function() {
+                    deactivateBatchSelection();
+                };
+                
+                // 添加批量选择提示条
+                const dataList = document.getElementById('saved-data-list');
+                const batchHeader = document.createElement('div');
+                batchHeader.className = 'flex justify-between items-center p-3 bg-blue-50 rounded-md mb-3';
+                batchHeader.id = 'batch-selection-header';
+                batchHeader.innerHTML = `
+                    <div class="flex items-center">
+                        <i class="fa fa-info-circle text-primary mr-2"></i>
+                        <span class="text-sm font-medium text-gray-700">批量选择模式</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <span class="text-xs text-gray-600" id="selected-count">已选择: 0</span>
+                        <button id="batch-select-all" class="btn btn-sm btn-primary">
+                            <i class="fa fa-check-square-o mr-1"></i>全选
+                        </button>
+                    </div>
+                `;
+                
+                // 插入到数据列表顶部
+                if (dataList.firstChild) {
+                    dataList.insertBefore(batchHeader, dataList.firstChild);
+                } else {
+                    dataList.appendChild(batchHeader);
+                }
+                
+                // 绑定全选按钮事件
+                document.getElementById('batch-select-all').onclick = function() {
+                    selectAllDataItems();
+                };
+                
+                // 为数据项添加选择功能
+                addSelectionToDataItems();
+            }
+            
+            // 全选/取消全选功能
+            function selectAllDataItems() {
+                const dataItems = document.querySelectorAll('#saved-data-list > div[data-id]');
+                const isAllSelected = selectedDataItems.size === dataItems.length && dataItems.length > 0;
+                const selectAllBtn = document.getElementById('batch-select-all');
+                
+                if (isAllSelected) {
+                    // 取消全选
+                    selectedDataItems.clear();
+                    dataItems.forEach(item => {
+                        item.classList.remove('bg-blue-100', 'border-blue-300');
+                        item.style.border = '';
+                        const checkbox = item.querySelector('.selection-checkbox');
+                        if (checkbox) checkbox.remove();
+                    });
+                    selectAllBtn.innerHTML = '<i class="fa fa-check-square-o mr-1"></i>全选';
+                } else {
+                    // 全选
+                    dataItems.forEach(item => {
+                        const id = item.dataset.id;
+                        selectedDataItems.add(id);
+                        item.classList.add('bg-blue-100', 'border-blue-300');
+                        item.style.border = '2px solid #3b82f6';
+                        
+                        // 移除选中标记的创建，只保留边框样式
+                    });
+                    selectAllBtn.innerHTML = '<i class="fa fa-square-o mr-1"></i>取消全选';
+                }
+                
+                // 更新选择计数
+                updateSelectedCount();
+            }
+            
+            // 为数据项添加选择功能
+            function addSelectionToDataItems() {
+                const dataItems = document.querySelectorAll('#saved-data-list > div[data-id]');
+                
+                console.log('找到的数据项数量:', dataItems.length);
+                
+                dataItems.forEach(item => {
+                    const id = item.dataset.id;
+                    console.log('处理数据项:', id, item);
+                    
+                    if (!id) {
+                        console.warn('数据项缺少data-id属性:', item);
+                        return;
+                    }
+                    
+                    // 添加cursor样式
+                    item.classList.add('cursor-pointer', 'transition-all', 'duration-200');
+                    
+                    // 移除之前的事件监听器（通过克隆）
+                    const newItem = item.cloneNode(true);
+                    item.parentNode.replaceChild(newItem, item);
+                    
+                    // 重新获取引用
+                    const currentItem = newItem;
+                    
+                    // 添加点击事件
+                    currentItem.addEventListener('click', function(e) {
+                        // 如果点击的是按钮，不处理选择
+                        if (e.target.tagName === 'BUTTON' || e.target.closest('button')) {
+                            console.log('点击了按钮，不处理选择');
+                            return;
+                        }
+                        
+                        const itemId = this.dataset.id;
+                        console.log('点击数据项:', itemId);
+                        
+                        if (selectedDataItems.has(itemId)) {
+                            // 取消选中
+                            selectedDataItems.delete(itemId);
+                            this.classList.remove('bg-blue-100', 'border-blue-300');
+                            this.style.border = '';
+                            // 移除选中标记的删除逻辑，因为不再创建选中标记
+                            console.log('取消选中:', itemId);
+                        } else {
+                            // 选中
+                            selectedDataItems.add(itemId);
+                            this.classList.add('bg-blue-100', 'border-blue-300');
+                            this.style.border = '2px solid #3b82f6';
+                            
+                            // 移除选中标记的创建，只保留边框样式
+                            console.log('选中:', itemId);
+                        }
+                        
+                        // 更新UI状态
+                        updateBatchSelectionUI();
+                    });
+                });
+            }
+            
+            // 更新批量选择UI状态
+            function updateBatchSelectionUI() {
+                updateSelectedCount();
+                updateSelectAllButtonState();
+            }
+            
+            // 更新选择计数
+            function updateSelectedCount() {
+                const countElement = document.getElementById('selected-count');
+                if (countElement) {
+                    countElement.textContent = `已选择: ${selectedDataItems.size}`;
+                }
+            }
+            
+            // 更新全选按钮状态
+            function updateSelectAllButtonState() {
+                const selectAllBtn = document.getElementById('batch-select-all');
+                if (!selectAllBtn) return;
+                
+                const dataItems = document.querySelectorAll('#saved-data-list > div[data-id]');
+                
+                if (selectedDataItems.size === 0) {
+                    selectAllBtn.innerHTML = '<i class="fa fa-check-square-o mr-1"></i>全选';
+                } else if (selectedDataItems.size === dataItems.length) {
+                    selectAllBtn.innerHTML = '<i class="fa fa-square-o mr-1"></i>取消全选';
+                } else {
+                    selectAllBtn.innerHTML = '<i class="fa fa-minus-square-o mr-1"></i>部分选择';
+                }
+            }
+            
+            // 停用批量选择模式
+            function deactivateBatchSelection() {
+                batchSelectActive = false;
+                selectedDataItems.clear();
+                
+                // 恢复批量加载按钮
+                const batchBtn = document.getElementById('batch-load-btn');
+                batchBtn.classList.remove('btn-primary');
+                batchBtn.classList.add('btn-secondary');
+                batchBtn.innerHTML = '<i class="fa fa-download"></i><span>批量加载</span>';
+                
+                // 隐藏取消按钮
+                const cancelBtn = document.getElementById('batch-cancel-btn');
+                cancelBtn.classList.add('hidden');
+                
+                // 移除批量选择提示条
+                const batchHeader = document.getElementById('batch-selection-header');
+                if (batchHeader) batchHeader.remove();
+                
+                // 清除所有数据项的选中状态
+                const dataItems = document.querySelectorAll('#saved-data-list > div[data-id]');
+                dataItems.forEach(item => {
+                    item.classList.remove('bg-blue-100', 'border-blue-300', 'cursor-pointer');
+                    item.style.border = '';
+                    const checkbox = item.querySelector('.selection-checkbox');
+                    if (checkbox) checkbox.remove();
+                });
+            }
+            
             document.getElementById('prev-page').addEventListener('click', function() {
                 if (currentPage > 1) {
                     currentPage--;
@@ -26316,7 +26663,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -26766,6 +27113,9 @@ ${shopsMap[link.shopId]}
                                 </div>
                                 ${shopName !== '未分类' ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                                     ${shopName}
+                                </span>` : ''}
+                                ${product.dataSource ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105" title="来自数据集: ${product.dataSource}">
+                                    <i class="fa fa-database mr-1"></i> ${product.dataSource}
                                 </span>` : ''}
                                 ${getShopPlatformByProductId(product.id) ? `<span class="ml-2 px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(getShopPlatformByProductId(product.id))} text-white shadow-md">${getShopPlatformByProductId(product.id)}</span>` : ''}
                                 <span class="ml-2 badge ${product.netProfit >= 0 ? 'badge-success' : 'badge-danger'}">
@@ -27750,7 +28100,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -29074,7 +29424,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -30245,7 +30595,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -31541,6 +31891,9 @@ ${shopsMap[link.shopId]}
                                 ${shopName !== '未分类' ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-primary to-blue-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105">
                                     ${shopName}
                                 </span>` : ''}
+                                ${product.dataSource ? `<span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-purple-500 to-indigo-500 text-white shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105" title="来自数据集: ${product.dataSource}">
+                                    <i class="fa fa-database mr-1"></i> ${product.dataSource}
+                                </span>` : ''}
                                 ${getShopPlatformByProductId(product.id) ? `<span class="ml-2 px-2 py-1 rounded-full text-xs font-medium ${getPlatformColorClass(getShopPlatformByProductId(product.id))} text-white shadow-md">${getShopPlatformByProductId(product.id)}</span>` : ''}
                                 <span class="ml-2 badge ${product.netProfit >= 0 ? 'badge-success' : 'badge-danger'}">
                                     ${product.netProfit >= 0 ? '盈利' : '亏损'}
@@ -32637,7 +32990,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -33431,7 +33784,7 @@ ${shopsMap[link.shopId]}
                 // 确保categoryObj是对象格式
                 const category = typeof categoryObj === 'string' ? { name: categoryObj, color: '#3B82F6' } : categoryObj;
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center space-x-2">
                             <div class="w-4 h-4 rounded-full" style="background-color: ${category.color}"></div>
                             <span class="font-medium text-gray-800 category-name" data-cost-type="${costType}" data-index="${index}">${category.name}</span>
@@ -34391,7 +34744,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
@@ -35202,7 +35555,7 @@ ${shopsMap[link.shopId]}
                 const formattedTime = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')} | ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
                 
                 html += `
-                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md">
+                    <div class="flex justify-between items-center p-3 bg-gray-50 rounded-md cursor-pointer transition-colors duration-200" data-id="${item.id}">
                         <div class="flex items-center flex-grow">
                             <i class="fa fa-database text-primary mr-3"></i>
                             <div class="flex-grow min-w-0">
