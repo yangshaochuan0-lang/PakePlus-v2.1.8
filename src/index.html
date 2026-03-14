@@ -498,6 +498,49 @@
             deleteBtn.addEventListener('click', deleteProductImage);
         }
         
+        // 绑定删除笔记模态框事件
+        const deleteNoteModal = document.getElementById('delete-note-confirm-modal');
+        if (deleteNoteModal) {
+            const closeBtn = document.getElementById('close-delete-note-confirm-modal');
+            const cancelBtn = document.getElementById('cancel-delete-note-btn');
+            const confirmBtn = document.getElementById('confirm-delete-note-btn');
+            
+            // 关闭按钮事件
+            if (closeBtn) {
+                closeBtn.addEventListener('click', function() {
+                    deleteNoteModal.classList.add('hidden');
+                });
+            }
+            
+            // 取消按钮事件
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    deleteNoteModal.classList.add('hidden');
+                });
+            }
+            
+            // 确认删除按钮事件 - 这里需要根据实际的删除逻辑进行修改
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', function() {
+                    // 获取当前要删除的笔记ID（假设存储在一个全局变量中）
+                    const noteId = window.currentNoteIdToDelete;
+                    
+                    if (noteId) {
+                        console.log('删除笔记:', noteId);
+                        
+                        // 这里应该添加实际的删除逻辑
+                        // 例如：从数据中移除笔记、更新UI等
+                        
+                        // 显示删除成功的提示
+                        showToast('笔记删除成功', 'success');
+                    }
+                    
+                    // 隐藏模态框
+                    deleteNoteModal.classList.add('hidden');
+                });
+            }
+        }
+        
         // 初始化已保存的产品图片
         initProductImages();
     });
@@ -1132,7 +1175,7 @@
     </div>
 
     <!-- Delete Note Confirmation Modal -->
-    <div id="delete-note-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="z-index: 1001;">
+    <div id="delete-note-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden" style="z-index: 2001;">
         <div class="bg-white/80 backdrop-blur-sm rounded-xl p-4 w-full max-w-md shadow-xl border border-white/20 transform transition-all duration-300 hover:shadow-2xl">
             <div class="p-4">
                 <div class="flex justify-between items-center mb-4">
