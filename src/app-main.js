@@ -1,7 +1,8 @@
-// ====================== 第一部分：授权验证逻辑（来自 license-check.js） ======================
+// ====================== 核心配置 ======================
 const SECRET_KEY = 'y1119557970s17628196973c19980215';
+const TRAY_MENU_ID = 'custom-tray-menu'; // 自定义托盘菜单ID
 
-// 生成机器码
+// ====================== 第一部分：授权验证逻辑（完整保留） ======================
 function getMachineCode() {
   try {
     const canvas = document.createElement('canvas');
@@ -13,7 +14,6 @@ function getMachineCode() {
   }
 }
 
-// 加解密核心
 const Crypto = {
   encrypt: function (text) {
     let encrypted = '';
@@ -32,7 +32,6 @@ const Crypto = {
   }
 };
 
-// 验证密钥逻辑
 function verifyLicense(licenseKey, machineCode) {
   try {
     const decryptedText = Crypto.decrypt(licenseKey);
@@ -52,7 +51,6 @@ function verifyLicense(licenseKey, machineCode) {
   }
 }
 
-// 美化版授权验证弹窗
 document.addEventListener('DOMContentLoaded', function () {
   const machineCode = getMachineCode();
   const savedKey = localStorage.getItem('my_app_license_key');
@@ -164,55 +162,195 @@ document.addEventListener('DOMContentLoaded', function () {
         overlay.remove();
         modal.remove();
         alert('授权验证成功！欢迎使用应用。');
+        initTray(); // 授权成功后初始化托盘
       } else {
         errMsg.textContent = res.reason;
         keyInput.style.borderColor = '#ef4444';
       }
     };
+  } else {
+    initTray(); // 已授权直接初始化托盘
   }
 });
 
-// ====================== 第二部分：托盘功能逻辑（来自 tray.js） ======================
-document.addEventListener('DOMContentLoaded', async () => {
-  if (window.__TAURI__) {
-    const { appWindow, TrayIcon, Menu, MenuItem } = window.__TAURI__.api;
+// ====================== 第二部分：现代美学托盘菜单（核心美化） ======================
+function initTray() {
+  // 延迟1秒确保Tauri加载完成
+  setTimeout(async () => {
+    if (!window.__TAURI__ || !window.__TAURI__.api) return;
 
-    // 创建托盘图标
+    const { appWindow, TrayIcon, Menu, MenuItem } = window.__TAURI__.api;
+    let trayPosition = { x: 0, y: 0 };
+
+    // 1. 创建系统托盘（极简，仅保留图标和提示）
     const trayIcon = await TrayIcon.new({
       icon: 'tray-icon.png',
       tooltip: '四艺堂管理系统',
-      menu: Menu.new({
-        items: [
-          MenuItem.new({
-            text: '显示窗口',
-            handler: () => appWindow.show()
-          }),
-          MenuItem.new({
-            text: '最小化到托盘',
-            handler: () => appWindow.hide()
-          }),
-          MenuItem.new({
-            text: '退出应用',
-            handler: () => window.__TAURI__.app.exit()
-          })
-        ]
-      })
+      menu: Menu.new({ items: [] }) // 清空原生菜单，用自定义菜单替代
     });
 
-    // 监听关闭事件 → 最小化到托盘
+    // 2. 拦截窗口关闭 → 最小化到托盘
     await appWindow.onCloseRequested(async (event) => {
       event.preventDefault();
       await appWindow.hide();
     });
 
-    // 点击托盘图标 → 切换显示/隐藏
+    // 3. 创建自定义美化托盘菜单（现代卡片式设计）
+    createCustomTrayMenu();
+
+    // 4. 监听托盘点击 → 显示/隐藏自定义菜单
     await trayIcon.onClick(async (event) => {
-      if (await appWindow.isVisible()) {
-        await appWindow.hide();
-      } else {
-        await appWindow.show();
-        await appWindow.setFocus();
+      // 获取托盘点击位置（用于定位自定义菜单）
+      trayPosition = { x: event.x, y: event.y };
+      
+      const isVisible = await appWindow.isVisible();
+      const menu = document.getElementById(TRAY_MENU_ID);
+      
+      if (event.button === 0) { // 左键：切换窗口显示/隐藏
+        isVisible ? await appWindow.hide() : await appWindow.show();
+      } else if (event.button === 2) { // 右键：显示自定义美化菜单
+        // 定位菜单到鼠标点击位置
+        menu.style.left = `${trayPosition.x - 150}px`;
+        menu.style.top = `${trayPosition.y - 120}px`;
+        menu.style.display = 'block';
+        
+        // 点击页面其他区域关闭菜单
+        document.addEventListener('click', closeTrayMenu, { once: true });
       }
     });
+
+    // 5. 窗口显示/隐藏时同步菜单状态
+    await appWindow.onShow(() => {
+      updateMenuButtonState('show-window', false);
+      updateMenuButtonState('hide-window', true);
+    });
+    await appWindow.onHide(() => {
+      updateMenuButtonState('show-window', true);
+      updateMenuButtonState('hide-window', false);
+    });
+  }, 1000);
+}
+
+// 创建自定义美化托盘菜单
+function createCustomTrayMenu() {
+  // 创建菜单容器
+  const menu = document.createElement('div');
+  menu.id = TRAY_MENU_ID;
+  menu.style.cssText = `
+    position: fixed;
+    width: 200px;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 8px 0;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+    z-index: 999999;
+    display: none;
+    font-family: 'Microsoft YaHei', Arial, sans-serif;
+    border: 1px solid #f0f0f0;
+    backdrop-filter: blur(10px);
+    background: rgba(255, 255, 255, 0.95);
+  `;
+
+  // 菜单按钮样式（现代渐变+hover效果）
+  const buttonStyle = `
+    width: 100%;
+    padding: 10px 20px;
+    text-align: left;
+    border: none;
+    background: transparent;
+    color: #1f2937;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  `;
+  
+  const buttonHoverStyle = `
+    background: linear-gradient(135deg, #f0f4ff, #e8f4f8);
+    color: #4e6ef2;
+  `;
+
+  // 菜单按钮列表
+  const buttons = [
+    {
+      id: 'show-window',
+      text: '显示窗口',
+      icon: '🖥️',
+      handler: async () => {
+        await window.__TAURI__.api.appWindow.show();
+        closeTrayMenu();
+      }
+    },
+    {
+      id: 'hide-window',
+      text: '最小化到托盘',
+      icon: '📥',
+      handler: async () => {
+        await window.__TAURI__.api.appWindow.hide();
+        closeTrayMenu();
+      }
+    },
+    {
+      id: 'exit-app',
+      text: '退出应用',
+      icon: '🚪',
+      handler: async () => {
+        await window.__TAURI__.app.exit();
+      }
+    }
+  ];
+
+  // 添加分割线样式
+  const dividerStyle = `
+    height: 1px;
+    background: #f0f0f0;
+    margin: 6px 0;
+  `;
+
+  // 生成菜单按钮
+  buttons.forEach((btn, index) => {
+    const button = document.createElement('button');
+    button.id = btn.id;
+    button.style.cssText = buttonStyle;
+    button.innerHTML = `<span>${btn.icon}</span>${btn.text}`;
+    
+    // hover效果
+    button.onmouseover = () => {
+      button.style.cssText = buttonStyle + buttonHoverStyle;
+    };
+    button.onmouseout = () => {
+      button.style.cssText = buttonStyle;
+    };
+    
+    // 点击事件
+    button.onclick = btn.handler;
+    
+    menu.appendChild(button);
+
+    // 最后一个按钮前不加分割线
+    if (index < buttons.length - 1) {
+      const divider = document.createElement('div');
+      divider.style.cssText = dividerStyle;
+      menu.appendChild(divider);
+    }
+  });
+
+  document.body.appendChild(menu);
+}
+
+// 关闭自定义托盘菜单
+function closeTrayMenu() {
+  const menu = document.getElementById(TRAY_MENU_ID);
+  if (menu) menu.style.display = 'none';
+}
+
+// 更新菜单按钮状态
+function updateMenuButtonState(buttonId, isEnabled) {
+  const button = document.getElementById(buttonId);
+  if (button) {
+    button.style.opacity = isEnabled ? '1' : '0.6';
+    button.disabled = !isEnabled;
   }
-});
+}
