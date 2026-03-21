@@ -3198,7 +3198,7 @@
                                 </div>
                                 <div class="space-y-6">
                                     <div>
-                                        <p class="text-lg text-gray-700 font-bold">版本：V1.6.3</p>
+                                        <p class="text-lg text-gray-700 font-bold">版本：V1.6.4</p>
                                     </div>
                                 </div>
                                 <div class="mt-auto pt-6">
@@ -13606,7 +13606,8 @@ ${shopsMap[link.shopId]}
                 copiedProduct.productId = originalProduct.productId + '_copy';
                 copiedProduct.note = originalProduct.note ? originalProduct.note + ' (复制)' : '复制的商品';
                 
-                pricingData.links[linkIndex].products.push(copiedProduct);
+                // 在当前商品下方插入新复制的商品，而不是添加到列表末尾
+                pricingData.links[linkIndex].products.splice(productIndex + 1, 0, copiedProduct);
                 savePricingData();
                 renderLinks();
                 
