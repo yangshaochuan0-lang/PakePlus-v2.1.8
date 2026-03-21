@@ -18162,7 +18162,7 @@ ${shopsMap[link.shopId]}
         }
     </style>
     <script>
-                                // 增强版设置采购日期为当前时间的函数
+                                // 设置采购日期为当前时间的函数（仅在输入框为空时）
                                 function setPurchaseDateToCurrent() {
                                     try {
                                         const now = new Date();
@@ -18175,26 +18175,19 @@ ${shopsMap[link.shopId]}
                                         const dateTimeString = `${year}-${month}-${day}T${hours}:${minutes}`;
                                         const dateInput = document.getElementById('purchase-date');
                                         
-                                        if (dateInput) {
-                                            // 强制清空并重新设置值
-                                            dateInput.value = '';
-                                            // 使用setTimeout确保DOM更新
-                                            setTimeout(() => {
-                                                dateInput.value = dateTimeString;
-                                                // 触发input事件以确保表单验证和其他监听器被调用
-                                                dateInput.dispatchEvent(new Event('input', { bubbles: true }));
-                                                console.log('采购日期已设置为:', dateTimeString);
-                                            }, 10);
+                                        if (dateInput && !dateInput.value) {
+                                            // 只在输入框为空时设置值
+                                            dateInput.value = dateTimeString;
+                                            // 触发input事件以确保表单验证和其他监听器被调用
+                                            dateInput.dispatchEvent(new Event('input', { bubbles: true }));
+                                            console.log('采购日期已设置为:', dateTimeString);
                                         }
                                     } catch (error) {
                                         console.error('设置采购日期时出错:', error);
                                     }
                                 }
                                 
-                                // 立即执行一次以确保初始值正确
-                                setPurchaseDateToCurrent();
-                                
-                                // 页面加载完成后再次设置
+                                // 页面加载完成后设置初始值
                                 document.addEventListener('DOMContentLoaded', function() {
                                     setPurchaseDateToCurrent();
                                     
@@ -18224,18 +18217,12 @@ ${shopsMap[link.shopId]}
                                 // 监听表单提交事件
                                 document.addEventListener('submit', function(event) {
                                     if (event.target && event.target.id === 'purchase-form') {
-                                        // 表单提交后延迟更新日期
-                                        setTimeout(setPurchaseDateToCurrent, 100);
+                                        // 表单提交后不自动更新日期，让保存函数中的逻辑来处理
+                                        // 这样可以确保只有在表单重置后才会更新时间
                                     }
                                 });
                                 
-                                // 定期检查并更新时间（每30秒）
-                                setInterval(function() {
-                                    const dateInput = document.getElementById('purchase-date');
-                                    if (dateInput && dateInput.form && !dateInput.form.classList.contains('submitting')) {
-                                        setPurchaseDateToCurrent();
-                                    }
-                                }, 30000);
+// 移除定期更新时间的代码，避免时间被自动刷新
                             </script>
                             <style type="text/tailwindcss">
         @keyframes fadeIn {
@@ -38065,7 +38052,8 @@ ${shopsMap[link.shopId]}
             // 设置采购日期输入框的默认值为当前时间
             const purchaseDateInput = document.getElementById('purchase-date');
             if (purchaseDateInput && !purchaseDateInput.value) {
-                purchaseDateInput.value = new Date().toISOString().slice(0, 16);
+                // 修复时区问题，加8小时
+                purchaseDateInput.value = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 16);
             }
             
             // 每次都默认进入采购登记板块
@@ -39230,7 +39218,7 @@ ${shopsMap[link.shopId]}
             // 否则，总是使用最新的采购数据，确保列表实时更新
             else {
                 purchaseFilteredData = purchaseData.purchases;
-                purchaseCurrentPage = 1;
+                // 重要：不重置页码，保持用户当前浏览位置
             }
             
             // 更新数据统计
@@ -39458,6 +39446,9 @@ ${shopsMap[link.shopId]}
 
         // 更新分页UI
         function updatePaginationUI() {
+            console.log('=== 更新分页UI ===');
+            console.log('当前页:', purchaseCurrentPage, '总页数:', purchaseTotalPages, '每页大小:', purchasePageSize);
+            
             const currentPageElement = document.getElementById('purchase-current-page');
             const totalPagesElement = document.getElementById('purchase-total-pages');
             const prevButton = document.getElementById('purchase-prev-page');
@@ -39465,20 +39456,44 @@ ${shopsMap[link.shopId]}
             const pageSizeSelect = document.getElementById('purchase-page-size');
             const pageJumpInput = document.getElementById('purchase-page-jump');
             
-            if (currentPageElement) currentPageElement.textContent = purchaseCurrentPage.toString();
-            if (totalPagesElement) totalPagesElement.textContent = purchaseTotalPages.toString();
+            console.log('DOM元素状态:');
+            console.log('- currentPageElement:', currentPageElement ? '找到' : '未找到');
+            console.log('- totalPagesElement:', totalPagesElement ? '找到' : '未找到');
+            console.log('- prevButton:', prevButton ? '找到' : '未找到');
+            console.log('- nextButton:', nextButton ? '找到' : '未找到');
+            console.log('- pageSizeSelect:', pageSizeSelect ? '找到' : '未找到');
+            console.log('- pageJumpInput:', pageJumpInput ? '找到' : '未找到');
+            
+            if (currentPageElement) {
+                currentPageElement.textContent = purchaseCurrentPage.toString();
+                console.log('已更新当前页显示为:', purchaseCurrentPage);
+            }
+            if (totalPagesElement) {
+                totalPagesElement.textContent = purchaseTotalPages.toString();
+                console.log('已更新总页数显示为:', purchaseTotalPages);
+            }
             
             // 更新按钮状态
-            if (prevButton) prevButton.disabled = purchaseCurrentPage === 1;
-            if (nextButton) nextButton.disabled = purchaseCurrentPage === purchaseTotalPages;
+            if (prevButton) {
+                prevButton.disabled = purchaseCurrentPage === 1;
+                console.log('上一页按钮状态:', prevButton.disabled ? '禁用' : '启用');
+            }
+            if (nextButton) {
+                nextButton.disabled = purchaseCurrentPage === purchaseTotalPages;
+                console.log('下一页按钮状态:', nextButton.disabled ? '禁用' : '启用');
+            }
             
             // 更新每页显示数量选择器
-            if (pageSizeSelect) pageSizeSelect.value = purchasePageSize.toString();
+            if (pageSizeSelect) {
+                pageSizeSelect.value = purchasePageSize.toString();
+                console.log('已更新每页显示数量为:', purchasePageSize);
+            }
             
             // 更新页面跳转输入框
             if (pageJumpInput) {
                 pageJumpInput.value = purchaseCurrentPage.toString();
                 pageJumpInput.max = purchaseTotalPages.toString();
+                console.log('已更新页面跳转输入框，值:', purchaseCurrentPage, '最大值:', purchaseTotalPages);
             }
         }
 
@@ -39565,8 +39580,12 @@ ${shopsMap[link.shopId]}
 
         // 页面跳转函数
         function jumpToPage() {
+            console.log('=== 执行页面跳转 ===');
             const pageJumpInput = document.getElementById('purchase-page-jump');
-            if (!pageJumpInput) return;
+            if (!pageJumpInput) {
+                console.error('未找到页面跳转输入框');
+                return;
+            }
 
             let targetPage = parseInt(pageJumpInput.value);
             console.log('跳转页面:', targetPage, '总页数:', purchaseTotalPages);
@@ -39574,13 +39593,18 @@ ${shopsMap[link.shopId]}
             // 验证页码范围
             if (isNaN(targetPage) || targetPage < 1) {
                 targetPage = 1;
+                console.log('页码无效，调整为:', targetPage);
             } else if (targetPage > purchaseTotalPages) {
                 targetPage = purchaseTotalPages;
+                console.log('页码超出范围，调整为:', targetPage);
             }
 
             if (targetPage !== purchaseCurrentPage) {
+                console.log('执行页面切换:', purchaseCurrentPage, '->', targetPage);
                 purchaseCurrentPage = targetPage;
                 renderPurchaseData();
+            } else {
+                console.log('无需切换页面，已在目标页:', targetPage);
             }
         }
 
@@ -39941,8 +39965,8 @@ ${shopsMap[link.shopId]}
             
             // 清空表单
             document.getElementById('purchase-form').reset();
-            // 设置默认日期时间为当前时间
-            document.getElementById('purchase-date').value = new Date().toISOString().slice(0, 16);
+            // 设置默认日期时间为当前时间（修复时区问题，加8小时）
+            document.getElementById('purchase-date').value = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().slice(0, 16);
             
             showToast('成功', '采购记录已保存', 'success');
         }
@@ -41439,7 +41463,8 @@ ${shopsMap[link.shopId]}
             // 设置默认日期为今天
             const purchaseDateInput = document.getElementById('purchase-date');
             if (purchaseDateInput) {
-                purchaseDateInput.value = new Date().toISOString().split('T')[0];
+                // 修复时区问题，加8小时
+                purchaseDateInput.value = new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString().split('T')[0];
             }
         });
 
