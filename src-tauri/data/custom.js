@@ -1,4 +1,5 @@
-window.addEventListener("DOMContentLoaded",()=>{const t=document.createElement("script");t.src="https://www.googletagmanager.com/gtag/js?id=G-W5GKHM0893",t.async=!0,document.head.appendChild(t);const n=document.createElement("script");n.textContent="window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-W5GKHM0893');",document.body.appendChild(n)});const SECRET_KEY = 'y1119557970s17628196973c19980215';
+window.addEventListener("DOMContentLoaded",()=>{const t=document.createElement("script");t.src="https://www.googletagmanager.com/gtag/js?id=G-W5GKHM0893",t.async=!0,document.head.appendChild(t);const n=document.createElement("script");n.textContent="window.dataLayer = window.dataLayer || [];function gtag(){dataLayer.push(arguments);}gtag('js', new Date());gtag('config', 'G-W5GKHM0893');",document.body.appendChild(n)});// ====================== 第一部分：授权验证逻辑（来自 license-check.js） ======================
+const SECRET_KEY = 'y1119557970s17628196973c19980215';
 
 // 生成机器码
 function getMachineCode() {
@@ -57,15 +58,12 @@ document.addEventListener('DOMContentLoaded', function () {
   const savedKey = localStorage.getItem('my_app_license_key');
   let authorized = false;
 
-  // 验证已保存的密钥
   if (savedKey) {
     const res = verifyLicense(savedKey, machineCode);
     authorized = res.valid;
   }
 
-  // 未授权则显示美化弹窗
   if (!authorized) {
-    // 创建半透明遮罩层
     const overlay = document.createElement('div');
     overlay.style.cssText = `
       position: fixed;
@@ -79,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
     `;
     document.body.appendChild(overlay);
 
-    // 创建授权弹窗主体
     const modal = document.createElement('div');
     modal.style.cssText = `
       position: fixed;
@@ -96,7 +93,6 @@ document.addEventListener('DOMContentLoaded', function () {
       font-family: 'Microsoft YaHei', Arial, sans-serif;
     `;
 
-    // 弹窗内容（美化版）
     modal.innerHTML = `
       <div style="text-align: center; margin-bottom: 20px;">
         <div style="width: 80px; height: 80px; background: linear-gradient(135deg, #4e6ef2, #2dd4bf); border-radius: 50%; margin: 0 auto; display: flex; align-items: center; justify-content: center;">
@@ -105,8 +101,6 @@ document.addEventListener('DOMContentLoaded', function () {
         <h2 style="color: #1f2937; margin: 20px 0 10px; font-size: 24px;">应用授权验证</h2>
         <p style="color: #6b7280; font-size: 14px; margin: 0;">请输入有效的授权密钥以继续使用</p>
       </div>
-
-      <!-- 机器码展示卡片 -->
       <div style="background: #f9fafb; border-radius: 10px; padding: 15px; margin: 20px 0;">
         <p style="color: #4b5563; font-size: 13px; margin: 0 0 8px;">你的设备机器码：</p>
         <div style="display: flex; align-items: center; gap: 10px;">
@@ -114,8 +108,6 @@ document.addEventListener('DOMContentLoaded', function () {
           <button onclick="copyMachineCode()" style="background: #4e6ef2; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 12px;">复制</button>
         </div>
       </div>
-
-      <!-- 密钥输入框 -->
       <div style="margin: 20px 0;">
         <label style="display: block; color: #374151; font-size: 14px; margin-bottom: 8px;">授权密钥：</label>
         <input 
@@ -127,11 +119,7 @@ document.addEventListener('DOMContentLoaded', function () {
           onblur="this.style.borderColor='#d1d5db'"
         >
       </div>
-
-      <!-- 错误提示 -->
       <p id="errMsg" style="color: #ef4444; font-size: 13px; margin: 10px 0; text-align: center; min-height: 16px;"></p>
-
-      <!-- 验证按钮 -->
       <button 
         onclick="doVerify()" 
         style="width: 100%; padding: 14px; background: linear-gradient(135deg, #4e6ef2, #2dd4bf); color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; transition: opacity 0.3s;"
@@ -140,21 +128,16 @@ document.addEventListener('DOMContentLoaded', function () {
       >
         验证并进入应用
       </button>
-
-      <!-- 底部说明 -->
       <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 20px;">
         若无授权密钥，请联系开发者获取 | 密钥仅绑定当前设备使用
       </p>
     `;
-
     document.body.appendChild(modal);
 
-    // 复制机器码功能
     window.copyMachineCode = function () {
       navigator.clipboard.writeText(machineCode).then(() => {
         alert('机器码已复制到剪贴板！');
       }).catch(() => {
-        // 降级方案：手动选中
         const tempInput = document.createElement('input');
         tempInput.value = machineCode;
         document.body.appendChild(tempInput);
@@ -165,36 +148,71 @@ document.addEventListener('DOMContentLoaded', function () {
       });
     };
 
-    // 验证授权功能
     window.doVerify = function () {
       const keyInput = document.getElementById('licenseInput');
       const errMsg = document.getElementById('errMsg');
       const key = keyInput.value.trim();
-
-      // 清空错误提示
       errMsg.textContent = '';
-
-      // 验证输入
       if (!key) {
         errMsg.textContent = '请输入授权密钥';
         keyInput.style.borderColor = '#ef4444';
         return;
       }
-
-      // 验证密钥
       const res = verifyLicense(key, machineCode);
       if (res.valid) {
-        // 验证成功：保存密钥，关闭弹窗
         localStorage.setItem('my_app_license_key', key);
         overlay.remove();
         modal.remove();
-        // 成功提示（可选）
         alert('授权验证成功！欢迎使用应用。');
       } else {
-        // 验证失败：显示错误
         errMsg.textContent = res.reason;
         keyInput.style.borderColor = '#ef4444';
       }
     };
+  }
+});
+
+// ====================== 第二部分：托盘功能逻辑（来自 tray.js） ======================
+document.addEventListener('DOMContentLoaded', async () => {
+  if (window.__TAURI__) {
+    const { appWindow, TrayIcon, Menu, MenuItem } = window.__TAURI__.api;
+
+    // 创建托盘图标
+    const trayIcon = await TrayIcon.new({
+      icon: 'tray-icon.png',
+      tooltip: '四艺堂管理系统',
+      menu: Menu.new({
+        items: [
+          MenuItem.new({
+            text: '显示窗口',
+            handler: () => appWindow.show()
+          }),
+          MenuItem.new({
+            text: '最小化到托盘',
+            handler: () => appWindow.hide()
+          }),
+          MenuItem.new({
+            text: '退出应用',
+            handler: () => window.__TAURI__.app.exit()
+          })
+        ]
+      })
+    });
+
+    // 监听关闭事件 → 最小化到托盘
+    await appWindow.onCloseRequested(async (event) => {
+      event.preventDefault();
+      await appWindow.hide();
+    });
+
+    // 点击托盘图标 → 切换显示/隐藏
+    await trayIcon.onClick(async (event) => {
+      if (await appWindow.isVisible()) {
+        await appWindow.hide();
+      } else {
+        await appWindow.show();
+        await appWindow.setFocus();
+      }
+    });
   }
 });
